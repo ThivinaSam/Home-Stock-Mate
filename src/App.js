@@ -8,7 +8,7 @@ function App() {
     <div className="App">
       <React.Fragment>
         <Routes>
-          <Route path="/home" element={<Home />} />
+          <Route path="/testHome" element={<Home />} />
         </Routes>
       </React.Fragment>
     </div>
