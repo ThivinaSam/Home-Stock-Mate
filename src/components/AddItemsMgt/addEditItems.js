@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Button, Form, Grid, GridColumn, Loader } from "semantic-ui-react";
-import { storage } from "../../firebase";
-import { useParams, useNavigate } from "react-router-dom";
+import { Button, Grid, GridColumn, Loader } from "semantic-ui-react";
+import { storage, db } from "../../firebase";
+import { useNavigate } from "react-router-dom";
 import { uploadBytesResumable, ref, getDownloadURL } from "firebase/storage";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 const initialState = {
   item: "",
@@ -20,6 +21,7 @@ function AddItems() {
   const [progress, setProgress] = useState(null);
   const [errors, setErrors] = useState({});
   const [isSubmit, setIsSubmit] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const uploadFile = () => {
@@ -84,10 +86,16 @@ function AddItems() {
     return errors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     let errors = validate();
     if (Object.keys(errors).length) return setErrors(errors);
+    setIsSubmit(true);
+      await addDoc(collection(db, "addItems"), {
+        ...data,
+        timestamp: serverTimestamp(),
+      });
+      navigate("/addItemHome");
   };
 
   return (
