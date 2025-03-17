@@ -10,6 +10,7 @@ import GetItemsMgt from './components/GetItemsMgt/getItems';
 import FinanceMgt from './components/FinanceMgt/finance';
 import UtilityMgt from './components/UtilityMgt/utility';
 import NavBar from './components/AddItemNavBar/navBar';
+import AddItemsHome from './components/AddItemsMgt/addItemsHome';
 
 function App() {
   const {currentUser} = useContext(AuthContext)
@@ -36,6 +37,8 @@ function App() {
             <Route path="/utility" element={<RequireAuth><UtilityMgt/></RequireAuth>} />
             <Route path="/addItem" element={<RequireAuth><AddItemsMgt/></RequireAuth>} />
             <Route path="/updateItem/:id" element={<RequireAuth><AddItemsMgt/></RequireAuth>} />
+            <Route path="/addItemHome" element={<RequireAuth><AddItemsHome/></RequireAuth>} />
+            
 
           </Routes>
       

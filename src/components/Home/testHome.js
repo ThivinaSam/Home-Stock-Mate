@@ -1,6 +1,6 @@
 import React from "react";
 import "./testHome.css";
-import { firestore } from "../../firebase";
+import { db } from "../../firebase";
 import { collection, addDoc } from "firebase/firestore";
 import { ref, uploadBytes, listAll, getDownloadURL } from "firebase/storage";
 import { useState, useEffect } from "react";
@@ -8,7 +8,7 @@ import { storage } from "../../firebase";
 
 function Home() {
   const messageRef = React.useRef();
-  const ref1 = collection(firestore, "messages");
+  const ref1 = collection(db, "messages");
 
   const handleSave = async (e) => {
     e.preventDefault();
