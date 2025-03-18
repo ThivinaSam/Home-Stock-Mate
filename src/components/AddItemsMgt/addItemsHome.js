@@ -120,7 +120,7 @@ const AddItemsHome = () => {
                   <Table.Cell>
                     <Button
                       color="green"
-                      onClick={() => navigate(`/update/${item.id}`)}
+                      onClick={() => navigate(`/updateItem/${item.id}`)}
                     >
                       Update
                     </Button>
