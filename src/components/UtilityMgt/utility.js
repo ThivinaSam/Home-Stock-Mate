@@ -16,6 +16,8 @@ function UtilityMgt() {
   const [notifications, setNotifications] = useState([]);
   const [activeAlarms, setActiveAlarms] = useState([]);
   const [countdowns, setCountdowns] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const audioRefs = useRef({}); // Reference to store multiple audio elements
   const countdownIntervalRef = useRef(null);
 
@@ -51,6 +53,17 @@ function UtilityMgt() {
   useEffect(() => {
     localStorage.setItem('activeAlarms', JSON.stringify(activeAlarms));
   }, [activeAlarms]);
+
+  // Auto-hide success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   // Calculate and update countdowns every second
   useEffect(() => {
@@ -218,6 +231,11 @@ function UtilityMgt() {
       photoPreview: null,
       status: 'UnPaid'
     });
+    
+    // Show success message
+    setSuccessMessage(`${utilityToAdd.name} utility has been successfully added!`);
+    
+    // Close popup
     setShowPopup(false);
   };
 
@@ -301,7 +319,7 @@ function UtilityMgt() {
   // Format countdown time display
   const formatCountdown = (countdown) => {
     if (!countdown) return '';
-    if (countdown.expired) return 'Due now';
+    if (countdown.expired) return 'Due Date';
     
     return `${countdown.days}d ${countdown.hours}h ${countdown.minutes}m ${countdown.seconds}s`;
   };
@@ -313,13 +331,53 @@ function UtilityMgt() {
     return countdown.days === 0 && countdown.hours < 24;
   };
 
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  // Filter utilities based on search term
+  const filteredUtilities = utilities.filter(utility => {
+    const searchTermLower = searchTerm.toLowerCase();
+    return (
+      utility.name.toLowerCase().includes(searchTermLower) ||
+      utility.amount.toLowerCase().includes(searchTermLower) ||
+      utility.status.toLowerCase().includes(searchTermLower) ||
+      (utility.dueDate && formatDate(utility.dueDate).toLowerCase().includes(searchTermLower))
+    );
+  });
+
+  // Clear search function
+  const clearSearch = () => {
+    setSearchTerm('');
+  };
+
   return (
     <div className="utility-container">
       <h2>Utility Management</h2>
       
+      {successMessage && (
+        <div className="success-message">
+          <div className="success-content">
+            <span className="success-icon">✓</span>
+            <span>{successMessage}</span>
+          </div>
+        </div>
+      )}
+      
       <div className="utility-header">
         <div className="search-bar">
-          <input type="text" placeholder="Search..." />
+          <input 
+            type="text" 
+            placeholder="Search utilities..." 
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+          {searchTerm && (
+            <button className="clear-search" onClick={clearSearch}>
+              ✕
+            </button>
+          )}
         </div>
         <button className="add-button" onClick={() => setShowPopup(true)}>
           Add Utility
@@ -337,8 +395,8 @@ function UtilityMgt() {
           <div className="utility-col">Actions</div>
         </div>
         
-        {utilities.length > 0 ? (
-          utilities.map(utility => (
+        {filteredUtilities.length > 0 ? (
+          filteredUtilities.map(utility => (
             <div className="utility-item" key={utility.id}>
               <div className="utility-col">
                 {utility.name}
@@ -347,8 +405,8 @@ function UtilityMgt() {
                 )}
               </div>
               <div className="utility-col">
-                {formatDate(utility.dueDate)}
-                {utility.dueTime && <div className="time-display">{utility.dueTime}</div>}
+                {formatDate(utility.dueDate)} | 
+                 {utility.dueTime && <div className="time-display">{utility.dueTime}</div>}
               </div>
               <div className={`utility-col countdown ${isDueSoon(countdowns[utility.id]) ? 'countdown-urgent' : ''}`}>
                 {formatCountdown(countdowns[utility.id])}
@@ -376,19 +434,13 @@ function UtilityMgt() {
               <div className="utility-col actions">
                 <button onClick={() => handleUpdate(utility.id)}>Update</button>
                 <button onClick={() => handleDelete(utility.id)}>Delete</button>
-                {activeAlarms.includes(utility.id) && (
-                  <button 
-                    className="stop-alarm-button" 
-                    onClick={() => stopAlarm(utility.id)}
-                  >
-                    Stop Alarm
-                  </button>
-                )}
               </div>
             </div>
           ))
         ) : (
-          <div className="no-utilities">No utilities added yet.</div>
+          <div className="no-utilities">
+            {utilities.length > 0 ? 'No matching utilities found.' : 'No utilities added yet.'}
+          </div>
         )}
       </div>
 
@@ -465,60 +517,6 @@ function UtilityMgt() {
           </div>
         </div>
       )}
-
-      {/* CSS styles */}
-      <style>{`
-        .countdown {
-          font-family: monospace;
-          font-weight: bold;
-        }
-        
-        .countdown-urgent {
-          color: #ff4500;
-          animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-          0% { opacity: 1; }
-          50% { opacity: 0.6; }
-          100% { opacity: 1; }
-        }
-        
-        .alarm-active {
-          color: red;
-          animation: blink 1s infinite;
-          margin-left: 5px;
-        }
-        
-        @keyframes blink {
-          0% { opacity: 1; }
-          50% { opacity: 0; }
-          100% { opacity: 1; }
-        }
-        
-        .status-label.due-now {
-          color: #ff4500;
-          font-weight: bold;
-        }
-        
-        .status-label.paid {
-          color: #008000;
-          font-weight: bold;
-        }
-        
-        .stop-alarm-button {
-          background-color: #ff4500;
-          color: white;
-          border: none;
-          padding: 5px 10px;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-        
-        .stop-alarm-button:hover {
-          background-color: #ff6347;
-        }
-      `}</style>
     </div>
   );
 }
