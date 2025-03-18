@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, Header, Button, Image } from "semantic-ui-react";
+import { Modal, Button, Image } from "semantic-ui-react";
 import { useNavigate } from "react-router-dom";
 
 const ModelComp = ({
@@ -27,6 +27,7 @@ const ModelComp = ({
           <p><strong>Item Name:</strong>  {item.item}</p>
           <p><strong>Description:</strong>  {item.description}</p>
           <p><strong>Date:</strong> {item.date}</p>
+          <p><strong>Quantity:</strong> {item.quantity}</p>
           <p><strong>Price:</strong>  {item.price}</p>
         </Modal.Description>
       </Modal.Content>
@@ -36,7 +37,7 @@ const ModelComp = ({
           content="Delete"
           labelPosition="right"
           icon="trash"
-          onClick={() => handleDelete(id)}
+          onClick={() => item && handleDelete(item.id)}
         />
         <Button color="black" onClick={() => setOpen(false)}>
           Close
