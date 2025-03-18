@@ -6,7 +6,15 @@ import './finance.css';
 function Finance() {
   const [bills, setBills] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredBills, setFilteredBills] = useState([]);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [showPhotoPopup, setShowPhotoPopup] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [newBill, setNewBill] = useState({
+    id: null,
     name: '',
     date: '',
     amount: '',
@@ -27,7 +35,47 @@ function Finance() {
     
     // Process data for the chart when bills change
     generateChartData();
+    
+    // Update filtered bills when all bills change
+    filterBills();
   }, [bills]);
+
+  // Filter bills when search term changes
+  useEffect(() => {
+    filterBills();
+  }, [searchTerm]);
+
+  // Auto-hide success message after 5 seconds
+  useEffect(() => {
+    let timer;
+    if (showSuccessMessage) {
+      timer = setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 5000);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [showSuccessMessage]);
+
+  const filterBills = () => {
+    if (!searchTerm.trim()) {
+      setFilteredBills(bills);
+      return;
+    }
+
+    const lowerCaseSearch = searchTerm.toLowerCase();
+    const filtered = bills.filter(bill => 
+      bill.name.toLowerCase().includes(lowerCaseSearch) || 
+      bill.amount.toLowerCase().includes(lowerCaseSearch) ||
+      (bill.date && formatDate(bill.date).toLowerCase().includes(lowerCaseSearch))
+    );
+    setFilteredBills(filtered);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
 
   const generateChartData = () => {
     // Create an object to hold monthly totals
@@ -85,24 +133,52 @@ function Finance() {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Format the amount with currency if it's a number
+    // Format the amount with currency if it's a number and doesn't already have currency
     let formattedAmount = newBill.amount;
-    if (!isNaN(parseFloat(newBill.amount))) {
+    if (!isNaN(parseFloat(newBill.amount)) && !formattedAmount.includes('LKR:')) {
       formattedAmount = `LKR:${parseFloat(newBill.amount)}`;
     }
     
-    const billToAdd = {
-      id: Date.now(),
-      name: newBill.name,
-      date: newBill.date,
-      amount: formattedAmount,
-      photoUrl: newBill.photoPreview,
-      createdAt: new Date().toISOString()
-    };
-
-    setBills([...bills, billToAdd]);
+    if (isUpdating) {
+      // Update existing bill
+      const updatedBills = bills.map(bill => {
+        if (bill.id === newBill.id) {
+          return {
+            ...bill,
+            name: newBill.name,
+            date: newBill.date,
+            amount: formattedAmount,
+            photoUrl: newBill.photoPreview || bill.photoUrl,
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return bill;
+      });
+      
+      setBills(updatedBills);
+      setIsUpdating(false);
+      setSuccessMessage(`Bill "${newBill.name}" was successfully updated!`);
+    } else {
+      // Add new bill
+      const billToAdd = {
+        id: Date.now(),
+        name: newBill.name,
+        date: newBill.date,
+        amount: formattedAmount,
+        photoUrl: newBill.photoPreview,
+        createdAt: new Date().toISOString()
+      };
+      
+      setBills([...bills, billToAdd]);
+      setSuccessMessage(`New bill "${newBill.name}" was successfully added!`);
+    }
     
+    // Show success message
+    setShowSuccessMessage(true);
+    
+    // Reset form
     setNewBill({
+      id: null,
       name: '',
       date: '',
       amount: '',
@@ -121,12 +197,41 @@ function Finance() {
   };
 
   const handleDelete = (id) => {
+    const billToDelete = bills.find(bill => bill.id === id);
     setBills(bills.filter(bill => bill.id !== id));
+    
+    if (billToDelete) {
+      setSuccessMessage(`Bill "${billToDelete.name}" was successfully deleted!`);
+      setShowSuccessMessage(true);
+    }
   };
 
   const handleUpdate = (id) => {
-    console.log("Update bill with ID:", id);
-    // Future enhancement: Implement update functionality
+    const billToUpdate = bills.find(bill => bill.id === id);
+    if (billToUpdate) {
+      // Extract the numeric amount from the formatted string
+      let amount = billToUpdate.amount;
+      if (amount.includes('LKR:')) {
+        amount = amount.replace('LKR:', '');
+      }
+      
+      setNewBill({
+        id: billToUpdate.id,
+        name: billToUpdate.name,
+        date: billToUpdate.date,
+        amount: amount,
+        photoPreview: billToUpdate.photoUrl
+      });
+      
+      setIsUpdating(true);
+      setShowPopup(true);
+    }
+  };
+
+  // Handle photo click to show popup
+  const handlePhotoClick = (photoUrl) => {
+    setSelectedPhoto(photoUrl);
+    setShowPhotoPopup(true);
   };
 
   // Format date to DD-MMM-YYYY format
@@ -152,11 +257,35 @@ function Finance() {
     <div className="finance-container">
       <h2>Finance Management</h2>
       
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <div className="success-message">
+          <span>{successMessage}</span>
+          <button onClick={() => setShowSuccessMessage(false)}>✕</button>
+        </div>
+      )}
+      
       <div className="finance-header">
         <div className="search-bar">
-          <input type="text" placeholder="Search..." />
+          <input 
+            type="text" 
+            placeholder="Search bills by name, amount, or date..." 
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
         </div>
-        <button className="add-button" onClick={() => setShowPopup(true)}>
+        <button className="add-button" onClick={() => {
+          setIsUpdating(false);
+          setNewBill({
+            id: null,
+            name: '',
+            date: '',
+            amount: '',
+            photo: null,
+            photoPreview: null
+          });
+          setShowPopup(true);
+        }}>
           Add Bill
         </button>
       </div>
@@ -170,15 +299,18 @@ function Finance() {
           <div className="finance-col">Actions</div>
         </div>
         
-        {bills.length > 0 ? (
-          bills.map(bill => (
+        {filteredBills.length > 0 ? (
+          filteredBills.map(bill => (
             <div className="finance-item" key={bill.id}>
               <div className="finance-col">{bill.name}</div>
               <div className="finance-col">{formatDate(bill.date)}</div>
               <div className="finance-col">{bill.amount}</div>
               <div className="finance-col">
                 {bill.photoUrl && (
-                  <div className="photo-thumbnail">
+                  <div 
+                    className="photo-thumbnail" 
+                    onClick={() => handlePhotoClick(bill.photoUrl)}
+                  >
                     <img src={bill.photoUrl} alt="Bill" />
                   </div>
                 )}
@@ -190,7 +322,9 @@ function Finance() {
             </div>
           ))
         ) : (
-          <div className="no-bills">No bills added yet.</div>
+          <div className="no-bills">
+            {bills.length === 0 ? "No bills added yet." : "No bills found matching your search."}
+          </div>
         )}
       </div>
 
@@ -220,10 +354,11 @@ function Finance() {
         <button className="pdf-button" onClick={handlePdfDownload}>PDF Download</button>
       </div>
 
+      {/* Bill Edit/Add Popup */}
       {showPopup && (
         <div className="popup-overlay">
           <div className="popup">
-            <h3>Add Bill</h3>
+            <h3>{isUpdating ? 'Update Bill' : 'Add Bill'}</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label>Bill Name</label>
@@ -272,10 +407,27 @@ function Finance() {
                 </div>
               )}
               <div className="form-actions">
-                <button type="submit">Submit</button>
+                <button type="submit">{isUpdating ? 'Update' : 'Submit'}</button>
                 <button type="button" onClick={() => setShowPopup(false)}>Cancel</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Popup */}
+      {showPhotoPopup && selectedPhoto && (
+        <div className="popup-overlay">
+          <div className="photo-popup">
+            <div className="photo-popup-content">
+              <img src={selectedPhoto} alt="Bill" />
+              <button 
+                className="close-photo-popup" 
+                onClick={() => setShowPhotoPopup(false)}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
