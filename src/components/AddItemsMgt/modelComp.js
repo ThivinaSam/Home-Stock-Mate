@@ -31,7 +31,7 @@ const ModelComp = ({
           <p><strong>Price:</strong>  {item.price}</p>
         </Modal.Description>
       </Modal.Content>
-      <Modal.Actions>
+      <Modal.Actions style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Button
           color="red"
           content="Delete"
