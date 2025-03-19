@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bar } from 'recharts';
 import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import './finance.css';
 
 function Finance() {
@@ -22,15 +25,25 @@ function Finance() {
     photoPreview: null
   });
   const [chartData, setChartData] = useState([]);
+  const chartRef = useRef(null);
 
   useEffect(() => {
     const savedBills = localStorage.getItem('bills');
     if (savedBills) {
-      setBills(JSON.parse(savedBills));
+      try {
+        const parsedBills = JSON.parse(savedBills);
+        setBills(parsedBills);
+        setFilteredBills(parsedBills); // Initialize filtered bills with all bills
+      } catch (error) {
+        console.error('Error parsing saved bills:', error);
+        setBills([]);
+        setFilteredBills([]);
+      }
     }
   }, []);
 
   useEffect(() => {
+    // Save to localStorage whenever bills change
     localStorage.setItem('bills', JSON.stringify(bills));
     
     // Process data for the chart when bills change
@@ -43,7 +56,7 @@ function Finance() {
   // Filter bills when search term changes
   useEffect(() => {
     filterBills();
-  }, [searchTerm]);
+  }, [searchTerm, bills]);
 
   // Auto-hide success message after 5 seconds
   useEffect(() => {
@@ -87,16 +100,27 @@ function Finance() {
     // Sum expenses for each month
     bills.forEach(bill => {
       if (bill.date) {
-        // Extract month from date string (assuming format YYYY-MM-DD)
-        const date = new Date(bill.date);
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const monthName = monthNames[date.getMonth()];
-        
-        // Convert amount string to number and add to the monthly total
-        const amount = parseFloat(bill.amount.replace(/[^\d.-]/g, ''));
-        if (!isNaN(amount)) {
-          monthlyTotals[monthName] += amount;
+        try {
+          // Extract month from date string (assuming format YYYY-MM-DD)
+          const date = new Date(bill.date);
+          if (!isNaN(date.getTime())) { // Check if date is valid
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthName = monthNames[date.getMonth()];
+            
+            // Convert amount string to number and add to the monthly total
+            let amount = bill.amount;
+            if (typeof amount === 'string') {
+              // Remove currency prefix and any non-numeric characters except decimal point
+              amount = parseFloat(amount.replace(/[^0-9.]/g, ''));
+            }
+            
+            if (!isNaN(amount)) {
+              monthlyTotals[monthName] += amount;
+            }
+          }
+        } catch (error) {
+          console.error('Error processing date for chart:', error);
         }
       }
     });
@@ -238,19 +262,230 @@ function Finance() {
   const formatDate = (dateString) => {
     if (!dateString) return '';
     
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 
-                       'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    const month = monthNames[date.getMonth()];
-    const year = date.getFullYear();
-    
-    return `${day}-${month}-${year}`;
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return ''; // Return empty string for invalid dates
+      
+      const day = date.getDate().toString().padStart(2, '0');
+      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 
+                         'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      const month = monthNames[date.getMonth()];
+      const year = date.getFullYear();
+      
+      return `${day}-${month}-${year}`;
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
   };
 
-  const handlePdfDownload = () => {
-    console.log("PDF download functionality to be implemented");
-    // Future enhancement: Implement PDF download functionality
+  // Calculate total expenses
+  const calculateTotalExpenses = () => {
+    return bills.reduce((total, bill) => {
+      let amount = bill.amount;
+      if (typeof amount === 'string') {
+        // Remove currency prefix and any non-numeric characters except decimal point
+        amount = parseFloat(amount.replace(/[^0-9.]/g, ''));
+      }
+      return isNaN(amount) ? total : total + amount;
+    }, 0);
+  };
+
+  
+  // MODIFIED: PDF Download Function without Bill Images
+  const handlePdfDownload = async () => {
+    try {
+      // Show loading message
+      setSuccessMessage('Generating PDF, please wait...');
+      setShowSuccessMessage(true);
+      
+      // Create new jsPDF instance
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
+      
+      const pageWidth = doc.internal.pageSize.getWidth();
+      let currentY = 15;
+      
+      // Add header and title
+      doc.setFontSize(22);
+      doc.setTextColor(44, 62, 80);
+      doc.text('Finance Management Report', 105, currentY, { align: 'center' });
+      currentY += 10;
+      
+      // Add date
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      const today = new Date();
+      doc.text(`Generated on: ${today.toLocaleDateString()}`, 105, currentY, { align: 'center' });
+      currentY += 10;
+      
+      // Add summary section
+      doc.setFontSize(16);
+      doc.setTextColor(41, 128, 185);
+      doc.text('Summary', 14, currentY);
+      currentY += 5;
+      
+      // Add summary box
+      doc.setDrawColor(41, 128, 185);
+      doc.setFillColor(240, 248, 255);
+      doc.roundedRect(14, currentY, 182, 20, 3, 3, 'FD');
+      
+      doc.setFontSize(12);
+      doc.setTextColor(44, 62, 80);
+      const billsToUse = searchTerm ? filteredBills : bills;
+      doc.text(`Total Bills: ${billsToUse.length}`, 20, currentY + 10);
+      
+      const totalExpenses = calculateTotalExpenses();
+      doc.text(`Total Expenses: LKR ${totalExpenses.toFixed(2)}`, 120, currentY + 10);
+      currentY += 25;
+      
+      // Add chart section
+      doc.setFontSize(16);
+      doc.setTextColor(41, 128, 185);
+      doc.text('Monthly Expenses Chart', 14, currentY);
+      currentY += 5;
+      
+      // Capture the chart as an image
+      if (chartRef.current && chartData.some(item => item.amount > 0)) {
+        try {
+          const canvas = await html2canvas(chartRef.current, {
+            scale: 2,
+            logging: false,
+            useCORS: true
+          });
+          
+          const chartImage = canvas.toDataURL('image/png');
+          doc.addImage(chartImage, 'PNG', 14, currentY, 182, 80);
+          currentY += 85;
+        } catch (chartError) {
+          console.error('Error capturing chart:', chartError);
+          doc.text('Error generating chart image.', 14, currentY);
+          currentY += 10;
+        }
+      } else {
+       // doc.text('No monthly expense data available for chart.', 14, currentY);
+        currentY += 10;
+      }
+      
+      // Add bill details table
+      doc.setFontSize(16);
+      doc.setTextColor(41, 128, 185);
+     // doc.text('Bill Details', 14, currentY);
+      currentY += 5;
+      
+      // Prepare bill data for table WITHOUT the "Has Image" column
+      const billData = billsToUse.map(bill => [
+        bill.name || 'N/A',
+        formatDate(bill.date) || 'N/A',
+        bill.amount || 'N/A'
+      ]);
+      
+      if (billData.length > 0) {
+        try {
+          doc.autoTable({
+            startY: currentY,
+            head: [['Bill Name', 'Date', 'Amount']], // Removed "Has Image" column
+            body: billData,
+            theme: 'grid',
+            headStyles: {
+              fillColor: [41, 128, 185],
+              textColor: 255,
+              fontStyle: 'bold'
+            },
+            styles: {
+              fontSize: 10,
+              cellPadding: 3,
+              lineColor: [220, 220, 220]
+            },
+            alternateRowStyles: {
+              fillColor: [245, 250, 254]
+            },
+            margin: { top: currentY }
+          });
+          
+          currentY = doc.previousAutoTable.finalY + 10;
+        } catch (tableError) {
+          console.error('Error creating bill details table:', tableError);
+          //doc.text('Error generating bill details table.', 14, currentY);
+          currentY += 10;
+        }
+      } else {
+       // doc.text('No bills available.', 14, currentY);
+        currentY += 10;
+      }
+      
+      // Add monthly expenses detail table
+      doc.setFontSize(16);
+      doc.setTextColor(41, 128, 185);
+     // doc.text('Monthly Expenses Detail', 14, currentY);
+      currentY += 5;
+      
+      // Prepare monthly data for table
+      const monthlyData = chartData
+        .filter(item => item.amount > 0)  // Only include months with expenses
+        .map(item => [item.month, `LKR ${item.amount.toFixed(2)}`]);
+      
+      if (monthlyData.length > 0) {
+        try {
+          doc.autoTable({
+            startY: currentY,
+            head: [['Month', 'Amount']],
+            body: monthlyData,
+            theme: 'grid',
+            headStyles: {
+              fillColor: [41, 128, 185],
+              textColor: 255,
+              fontStyle: 'bold'
+            },
+            styles: {
+              fontSize: 10,
+              cellPadding: 3,
+              lineColor: [220, 220, 220]
+            },
+            alternateRowStyles: {
+              fillColor: [245, 250, 254]
+            },
+            margin: { top: currentY }
+          });
+          
+          currentY = doc.previousAutoTable.finalY + 10;
+        } catch (tableError) {
+          console.error('Error creating monthly expenses table:', tableError);
+       // doc.text('Error generating monthly expenses table.', 14, currentY);
+          currentY += 10;
+        }
+      } else {
+       // doc.text('No monthly expense data available.', 14, currentY);
+        currentY += 10;
+      }
+      
+
+      
+      // Add footer with page number
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Page ${i} of ${pageCount}`, 105, 287, { align: 'center' });
+        doc.text('Generated by Finance Management App', 105, 292, { align: 'center' });
+      }
+      
+      // Save PDF
+      doc.save('finance_report.pdf');
+      
+      // Show success message
+      setSuccessMessage('Finance report downloaded successfully!');
+      setShowSuccessMessage(true);
+    } catch (error) {
+      console.error('Error creating PDF:', error);
+      setSuccessMessage('Failed to generate report. Please try again. Error: ' + error.message);
+      setShowSuccessMessage(true);
+    }
   };
 
   return (
@@ -329,7 +564,8 @@ function Finance() {
       </div>
 
       {/* Chart Section */}
-      <div className="chart-container">
+      <div className="chart-container" ref={chartRef}>
+        <h3>Monthly Expenses Chart</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart
             data={chartData}
@@ -343,15 +579,29 @@ function Finance() {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="month" />
             <YAxis />
-            <Tooltip formatter={(value) => [`LKR ${value}`, 'Amount']} />
+            <Tooltip formatter={(value) => [`LKR ${value.toFixed(2)}`, 'Amount']} />
             <Legend />
             <Bar dataKey="amount" fill="#8884d8" />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
+      {/* Summary Section */}
+      <div className="summary-container">
+        <div className="summary-item">
+          <h3>Total Bills</h3>
+          <p>{bills.length}</p>
+        </div>
+        <div className="summary-item">
+          <h3>Total Expenses</h3>
+          <p>LKR {calculateTotalExpenses().toFixed(2)}</p>
+        </div>
+      </div>
+
       <div className="footer">
-        <button className="pdf-button" onClick={handlePdfDownload}>PDF Download</button>
+        <button className="pdf-button" onClick={handlePdfDownload}>
+          <span className="pdf-icon">📄</span> Download PDF Report
+        </button>
       </div>
 
       {/* Bill Edit/Add Popup */}
@@ -436,3 +686,4 @@ function Finance() {
 }
 
 export default Finance;
+
