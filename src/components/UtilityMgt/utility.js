@@ -24,6 +24,7 @@ function UtilityMgt() {
   const [countdowns, setCountdowns] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessages, setErrorMessages] = useState({});
   const audioRefs = useRef({}); // Reference to store multiple audio elements
   const countdownIntervalRef = useRef(null);
 
@@ -70,6 +71,17 @@ function UtilityMgt() {
       return () => clearTimeout(timer);
     }
   }, [successMessage]);
+
+  // Auto-hide error messages after 5 seconds
+  useEffect(() => {
+    if (Object.keys(errorMessages).length > 0) {
+      const timer = setTimeout(() => {
+        setErrorMessages({});
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [errorMessages]);
 
   // Calculate and update countdowns every second
   useEffect(() => {
@@ -153,7 +165,7 @@ function UtilityMgt() {
     }
   };
 
-  // Function to stop the alarm - Fixed function
+  // Function to stop the alarm
   const stopAlarm = (utilityId) => {
     // Stop the audio if it's playing
     if (audioRefs.current[utilityId]) {
@@ -174,14 +186,69 @@ function UtilityMgt() {
     }
   }, []);
 
+  // Validate utility name - only characters, max 25 chars
+  const validateName = (name) => {
+    if (!name) return "Utility name is required";
+    if (name.length > 25) return "Utility name cannot exceed 25 characters";
+    if (!/^[a-zA-Z\s]+$/.test(name)) return "Utility name can only contain letters and spaces";
+    return "";
+  };
+
+  // Validate due date - cannot be in the past
+  const validateDueDate = (dueDate) => {
+    if (!dueDate) return "Due date is required";
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const selectedDate = new Date(dueDate);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) return "Due date cannot be in the past";
+    return "";
+  };
+
+  // Validate amount - only positive float values
+  const validateAmount = (amount) => {
+    if (!amount) return "Amount is required";
+    if (!/^\d+(\.\d{1,2})?$/.test(amount)) return "Amount must be a positive number with up to 2 decimal places";
+    if (parseFloat(amount) <= 0) return "Amount must be greater than zero";
+    return "";
+  };
+
+  // Validate photo - only PNG format
+  const validatePhoto = (file) => {
+    if (!file) return ""; // Photo is optional
+    
+    const validTypes = ['image/png'];
+    if (!validTypes.includes(file.type)) return "Only PNG format is allowed";
+    return "";
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewUtility({ ...newUtility, [name]: value });
+    
+    // Clear error message for this field when user starts typing
+    if (errorMessages[name]) {
+      setErrorMessages(prev => {
+        const updated = {...prev};
+        delete updated[name];
+        return updated;
+      });
+    }
   };
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate photo format
+      const error = validatePhoto(file);
+      if (error) {
+        setErrorMessages({...errorMessages, photo: error});
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setNewUtility({
@@ -191,13 +258,41 @@ function UtilityMgt() {
         });
       };
       reader.readAsDataURL(file);
+      
+      // Clear error message for photo
+      if (errorMessages.photo) {
+        setErrorMessages(prev => {
+          const updated = {...prev};
+          delete updated.photo;
+          return updated;
+        });
+      }
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Create a new utility object
+    // Validate all fields
+    const nameError = validateName(newUtility.name);
+    const dueDateError = validateDueDate(newUtility.dueDate);
+    const amountError = validateAmount(newUtility.amount);
+    const photoError = validatePhoto(newUtility.photo);
+    
+    // Collect all errors
+    const errors = {};
+    if (nameError) errors.name = nameError;
+    if (dueDateError) errors.dueDate = dueDateError;
+    if (amountError) errors.amount = amountError;
+    if (photoError) errors.photo = photoError;
+    
+    // If there are errors, display them and stop form submission
+    if (Object.keys(errors).length > 0) {
+      setErrorMessages(errors);
+      return;
+    }
+    
+    // If validation passed, create a new utility object
     const utilityToAdd = {
       id: Date.now(), // Using timestamp as a simple ID
       name: newUtility.name,
@@ -237,6 +332,9 @@ function UtilityMgt() {
       photoPreview: null,
       status: 'UnPaid'
     });
+    
+    // Clear error messages
+    setErrorMessages({});
     
     // Show success message
     setSuccessMessage(`${utilityToAdd.name} utility has been successfully added!`);
@@ -288,6 +386,9 @@ function UtilityMgt() {
     // Find the utility to update
     const utilityToUpdate = utilities.find(utility => utility.id === id);
     if (utilityToUpdate) {
+      // Reset error messages
+      setErrorMessages({});
+      
       // Set it in the form
       setNewUtility({
         name: utilityToUpdate.name,
@@ -320,7 +421,7 @@ function UtilityMgt() {
     setCurrentPhotoName('');
   };
 
-  // New PDF generation function with fixes
+  // PDF generation function
   const generatePDF = () => {
     try {
       // Create a new jsPDF instance
@@ -525,6 +626,12 @@ function UtilityMgt() {
     setSearchTerm('');
   };
 
+  // Get minimum date for date picker (today's date)
+  const getMinDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+  };
+
   return (
     <div className="utility-container">
       <h2>Utility Management</h2>
@@ -631,14 +738,17 @@ function UtilityMgt() {
             <h3>Add Utility</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>Utility</label>
+                <label>Utility Name</label>
                 <input 
                   type="text" 
                   name="name" 
                   value={newUtility.name}
                   onChange={handleInputChange} 
                   required 
+                  className={errorMessages.name ? 'error-input' : ''}
                 />
+                {errorMessages.name && <div className="error-message">{errorMessages.name}</div>}
+                <small>Only letters and spaces allowed, max 25 characters</small>
               </div>
               <div className="form-group">
                 <label>Due Date</label>
@@ -648,7 +758,11 @@ function UtilityMgt() {
                   value={newUtility.dueDate}
                   onChange={handleInputChange} 
                   required 
+                  min={getMinDate()}
+                  className={errorMessages.dueDate ? 'error-input' : ''}
                 />
+                {errorMessages.dueDate && <div className="error-message">{errorMessages.dueDate}</div>}
+                <small>Cannot select past dates</small>
               </div>
               <div className="form-group">
                 <label>Reminder Time</label>
@@ -667,7 +781,11 @@ function UtilityMgt() {
                   value={newUtility.amount}
                   onChange={handleInputChange} 
                   required 
+                  className={errorMessages.amount ? 'error-input' : ''}
+                  placeholder="e.g. 123.45"
                 />
+                {errorMessages.amount && <div className="error-message">{errorMessages.amount}</div>}
+                <small>Only positive numbers with up to 2 decimal places</small>
               </div>
               <div className="form-group photo-options">
                 <button type="button" onClick={handleTakePhoto}>Take a Photo</button>
@@ -675,10 +793,12 @@ function UtilityMgt() {
                 <input 
                   type="file"
                   id="photoInput"
-                  accept="image/*"
+                  accept="image/png"
                   onChange={handlePhotoChange}
                   style={{ display: 'none' }}
                 />
+                {errorMessages.photo && <div className="error-message">{errorMessages.photo}</div>}
+                <small>Only PNG format is allowed</small>
               </div>
               {newUtility.photoPreview && (
                 <div className="photo-preview">
@@ -687,7 +807,10 @@ function UtilityMgt() {
               )}
               <div className="form-actions">
                 <button type="submit">Submit</button>
-                <button type="button" onClick={() => setShowPopup(false)}>Cancel</button>
+                <button type="button" onClick={() => {
+                  setShowPopup(false);
+                  setErrorMessages({});
+                }}>Cancel</button>
               </div>
             </form>
           </div>

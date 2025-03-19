@@ -282,6 +282,10 @@ h2:after {
   font-size: 14px;
 }
 
+.error-message {
+  color: #ff4d4f;
+}
+
 .actions button:hover {
   background-color: var(--primary-color);
   color: white;
