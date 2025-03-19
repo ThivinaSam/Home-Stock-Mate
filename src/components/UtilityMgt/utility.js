@@ -7,6 +7,9 @@ import 'jspdf-autotable';
 function UtilityMgt() {
   const [utilities, setUtilities] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
+  const [showPhotoViewer, setShowPhotoViewer] = useState(false);
+  const [currentPhoto, setCurrentPhoto] = useState(null);
+  const [currentPhotoName, setCurrentPhotoName] = useState('');
   const [newUtility, setNewUtility] = useState({
     name: '',
     dueDate: '',
@@ -303,6 +306,20 @@ function UtilityMgt() {
     }
   };
 
+  // New function to open photo viewer
+  const openPhotoViewer = (photoUrl, utilityName) => {
+    setCurrentPhoto(photoUrl);
+    setCurrentPhotoName(utilityName);
+    setShowPhotoViewer(true);
+  };
+
+  // Function to close photo viewer
+  const closePhotoViewer = () => {
+    setShowPhotoViewer(false);
+    setCurrentPhoto(null);
+    setCurrentPhotoName('');
+  };
+
   // New PDF generation function with fixes
   const generatePDF = () => {
     try {
@@ -570,8 +587,11 @@ function UtilityMgt() {
               <div className="utility-col">{utility.amount}</div>
               <div className="utility-col">
                 {utility.photoUrl && (
-                  <div className="photo-thumbnail">
+                  <div className="photo-thumbnail" onClick={() => openPhotoViewer(utility.photoUrl, utility.name)}>
                     <img src={utility.photoUrl} alt="Bill" />
+                    <div className="view-overlay">
+                      <span>View</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -670,6 +690,24 @@ function UtilityMgt() {
                 <button type="button" onClick={() => setShowPopup(false)}>Cancel</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Viewer Modal */}
+      {showPhotoViewer && currentPhoto && (
+        <div className="photo-viewer-overlay">
+          <div className="photo-viewer">
+            <div className="photo-viewer-header">
+              <h3>{currentPhotoName} Bill</h3>
+              <button className="close-button" onClick={closePhotoViewer}>×</button>
+            </div>
+            <div className="photo-viewer-content">
+              <img src={currentPhoto} alt={`${currentPhotoName} bill`} />
+            </div>
+            <div className="photo-viewer-footer">
+              <button onClick={closePhotoViewer}>Close</button>
+            </div>
           </div>
         </div>
       )}
