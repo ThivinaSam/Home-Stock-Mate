@@ -21,17 +21,23 @@ function Finance() {
     name: '',
     date: '',
     amount: '',
+    type: '', // Added type field
     photo: null,
     photoPreview: null
   });
-  // New validation state for form fields
+  // Updated validation state to include date field
   const [validationErrors, setValidationErrors] = useState({
     name: '',
+    date: '', // Added date validation field
     amount: '',
+    type: '',
     photo: ''
   });
   const [chartData, setChartData] = useState([]);
   const chartRef = useRef(null);
+  
+  // Bill types for dropdown
+  const billTypes = ['Grocery','Food', 'Fuel', 'Utility', 'Clothing', 'Medicine','Other'];
 
   useEffect(() => {
     const savedBills = localStorage.getItem('bills');
@@ -87,6 +93,7 @@ function Finance() {
     const filtered = bills.filter(bill => 
       bill.name.toLowerCase().includes(lowerCaseSearch) || 
       bill.amount.toLowerCase().includes(lowerCaseSearch) ||
+      (bill.type && bill.type.toLowerCase().includes(lowerCaseSearch)) || // Added type search
       (bill.date && formatDate(bill.date).toLowerCase().includes(lowerCaseSearch))
     );
     setFilteredBills(filtered);
@@ -140,7 +147,7 @@ function Finance() {
     setChartData(data);
   };
 
-  // Modified to include validation
+  // Modified to include date validation
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
@@ -153,10 +160,25 @@ function Finance() {
       } else if (/\d/.test(value)) {
         error = 'Name must not contain numbers';
       }
+    } else if (name === 'date') {
+      // Validate date is not in the future
+      if (value) {
+        const selectedDate = new Date(value);
+        const today = new Date();
+        
+        // Remove time portion for accurate date comparison
+        today.setHours(0, 0, 0, 0);
+        
+        if (selectedDate > today) {
+          error = 'Date cannot be in the future';
+        }
+      }
     } else if (name === 'amount') {
       if (value && !/^[0-9]+(\.[0-9]{1,2})?$/.test(value)) {
         error = 'Amount must be a positive number';
       }
+    } else if (name === 'type' && !value) {
+      error = 'Please select a bill type';  
     }
     
     // Update validation errors
@@ -200,7 +222,7 @@ function Finance() {
     }
   };
 
-  // Modified to validate all fields before submitting
+  // Modified to validate date along with other fields before submitting
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -208,20 +230,38 @@ function Finance() {
     const nameError = newBill.name.length > 25 ? 'Name must not exceed 25 characters' : 
                     /\d/.test(newBill.name) ? 'Name must not contain numbers' : '';
     
+    // Date validation - ensure it's not in the future
+    let dateError = '';
+    if (!newBill.date) {
+      dateError = 'Date is required';
+    } else {
+      const selectedDate = new Date(newBill.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (selectedDate > today) {
+        dateError = 'Date cannot be in the future';
+      }
+    }
+    
     const amountError = !newBill.amount ? 'Amount is required' :
                       !/^[0-9]+(\.[0-9]{1,2})?$/.test(newBill.amount) ? 'Amount must be a positive number' : '';
+    
+    const typeError = !newBill.type ? 'Please select a bill type' : '';
     
     const photoError = newBill.photo && newBill.photo.type !== 'image/png' ? 'Only PNG images are allowed' : '';
     
     // Update validation errors
     setValidationErrors({
       name: nameError,
+      date: dateError,
       amount: amountError,
+      type: typeError,
       photo: photoError
     });
     
     // Check if there are any validation errors
-    if (nameError || amountError || photoError) {
+    if (nameError || dateError || amountError || typeError || photoError) {
       return; // Stop form submission if there are errors
     }
     
@@ -240,6 +280,7 @@ function Finance() {
             name: newBill.name,
             date: newBill.date,
             amount: formattedAmount,
+            type: newBill.type, // Include type in update
             photoUrl: newBill.photoPreview || bill.photoUrl,
             updatedAt: new Date().toISOString()
           };
@@ -257,6 +298,7 @@ function Finance() {
         name: newBill.name,
         date: newBill.date,
         amount: formattedAmount,
+        type: newBill.type, // Include type in new bill
         photoUrl: newBill.photoPreview,
         createdAt: new Date().toISOString()
       };
@@ -274,12 +316,15 @@ function Finance() {
       name: '',
       date: '',
       amount: '',
+      type: '', // Reset type
       photo: null,
       photoPreview: null
     });
     setValidationErrors({
       name: '',
+      date: '',
       amount: '',
+      type: '',
       photo: ''
     });
     setShowPopup(false);
@@ -317,13 +362,16 @@ function Finance() {
         name: billToUpdate.name,
         date: billToUpdate.date,
         amount: amount,
+        type: billToUpdate.type || '', // Get existing type
         photoPreview: billToUpdate.photoUrl
       });
       
       // Clear validation errors when loading an existing bill
       setValidationErrors({
         name: '',
+        date: '',
         amount: '',
+        type: '',
         photo: ''
       });
       
@@ -372,7 +420,7 @@ function Finance() {
   };
 
   
-  // PDF Download Function without Bill Images
+  // PDF Download Function with Type information
   const handlePdfDownload = async () => {
     try {
       // Show loading message
@@ -450,23 +498,24 @@ function Finance() {
         currentY += 10;
       }
       
-      // Add bill details table
+      // Add bill details table (UPDATED WITH TYPE)
       doc.setFontSize(16);
       doc.setTextColor(41, 128, 185);
       currentY += 5;
       
-      // Prepare bill data for table WITHOUT the "Has Image" column
+      // Prepare bill data for table WITH the "Type" column
       const billData = billsToUse.map(bill => [
         bill.name || 'N/A',
         formatDate(bill.date) || 'N/A',
-        bill.amount || 'N/A'
+        bill.amount || 'N/A',
+        bill.type || 'N/A'  // Include type in the PDF
       ]);
       
       if (billData.length > 0) {
         try {
           doc.autoTable({
             startY: currentY,
-            head: [['Bill Name', 'Date', 'Amount']], // Removed "Has Image" column
+            head: [['Bill Name', 'Date', 'Amount', 'Type']], // Added Type column
             body: billData,
             theme: 'grid',
             headStyles: {
@@ -575,7 +624,7 @@ function Finance() {
         <div className="search-bar">
           <input 
             type="text" 
-            placeholder="Search bills by name, amount, or date..." 
+            placeholder="Search bills..." 
             value={searchTerm}
             onChange={handleSearchChange}
           />
@@ -587,13 +636,16 @@ function Finance() {
             name: '',
             date: '',
             amount: '',
+            type: '', // Reset type
             photo: null,
             photoPreview: null
           });
           // Reset validation errors when opening the form
           setValidationErrors({
             name: '',
+            date: '', // Include date in reset
             amount: '',
+            type: '',
             photo: ''
           });
           setShowPopup(true);
@@ -607,6 +659,7 @@ function Finance() {
           <div className="finance-col">Bill Name</div>
           <div className="finance-col">Date</div>
           <div className="finance-col">Amount</div>
+          <div className="finance-col">Type</div>
           <div className="finance-col">Bill Photo</div>
           <div className="finance-col">Actions</div>
         </div>
@@ -617,6 +670,7 @@ function Finance() {
               <div className="finance-col">{bill.name}</div>
               <div className="finance-col">{formatDate(bill.date)}</div>
               <div className="finance-col">{bill.amount}</div>
+              <div className="finance-col">{bill.type || 'N/A'}</div>
               <div className="finance-col">
                 {bill.photoUrl && (
                   <div 
@@ -681,7 +735,7 @@ function Finance() {
         </button>
       </div>
 
-      {/* Bill Edit/Add Popup with Validation */}
+      {/* Bill Edit/Add Popup with Date Validation */}
       {showPopup && (
         <div className="popup-overlay">
           <div className="popup">
@@ -702,14 +756,19 @@ function Finance() {
                 )}
               </div>
               <div className="form-group">
-                <label>Date</label>
+                <label>Date (only past or today's date allowed)</label>
                 <input 
                   type="date" 
                   name="date" 
                   value={newBill.date}
                   onChange={handleInputChange} 
-                  required 
+                  required
+                  className={validationErrors.date ? 'input-error' : ''}
+                  max={new Date().toISOString().split('T')[0]} // Set max date to today
                 />
+                {validationErrors.date && (
+                  <div className="error-message">{validationErrors.date}</div>
+                )}
               </div>
               <div className="form-group">
                 <label>Amount (positive numbers only)</label>
@@ -723,6 +782,25 @@ function Finance() {
                 />
                 {validationErrors.amount && (
                   <div className="error-message">{validationErrors.amount}</div>
+                )}
+              </div>
+              {/* Type dropdown */}
+              <div className="form-group">
+                <label>Type</label>
+                <select 
+                  name="type" 
+                  value={newBill.type}
+                  onChange={handleInputChange}
+                  required
+                  className={validationErrors.type ? 'input-error' : ''}
+                >
+                  <option value="">Select Type from the drop down</option>
+                  {billTypes.map((type, index) => (
+                    <option key={index} value={type}>{type}</option>
+                  ))}
+                </select>
+                {validationErrors.type && (
+                  <div className="error-message">{validationErrors.type}</div>
                 )}
               </div>
               <div className="form-group photo-options">
