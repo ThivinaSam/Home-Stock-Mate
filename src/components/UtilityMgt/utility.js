@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './utility.css';
+import { jsPDF } from 'jspdf';
+// Make sure this import is correct and the package is installed
+import 'jspdf-autotable';
 
 function UtilityMgt() {
   const [utilities, setUtilities] = useState([]);
@@ -300,10 +303,163 @@ function UtilityMgt() {
     }
   };
 
+  // New PDF generation function with fixes
   const generatePDF = () => {
-    alert("PDF download functionality would be implemented here.");
-    // In a real application, you would use a library like jsPDF or html2pdf
-    // to generate a PDF of the utilities
+    try {
+      // Create a new jsPDF instance
+      const pdf = new jsPDF();
+      
+      // Add title
+      pdf.setFontSize(18);
+      pdf.text('Utility Management Report', 14, 20);
+      
+      // Add generation date
+      pdf.setFontSize(10);
+      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+      
+      // Add user summary - total bills, paid, unpaid, total amount
+      const totalBills = utilities.length;
+      const paidBills = utilities.filter(u => u.status === 'Paid').length;
+      const unpaidBills = totalBills - paidBills;
+      const totalAmount = utilities.reduce((sum, utility) => {
+        const amount = parseFloat(utility.amount.replace(/[^0-9.-]+/g, '')) || 0;
+        return sum + amount;
+      }, 0);
+      
+      pdf.setFontSize(12);
+      pdf.text(`Summary:`, 14, 38);
+      pdf.text(`Total Bills: ${totalBills}`, 20, 46);
+      pdf.text(`Paid: ${paidBills}`, 20, 54);
+      pdf.text(`Unpaid: ${unpaidBills}`, 20, 62);
+      pdf.text(`Total Amount: $${totalAmount.toFixed(2)}`, 20, 70);
+      
+      // Create the table rows and columns
+      const tableColumn = ['Utility', 'Due Date', 'Amount', 'Status'];
+      const tableRows = [];
+      
+      // Add utilities to table rows
+      utilities.forEach(utility => {
+        const formattedDate = formatDate(utility.dueDate);
+        const utilityRow = [
+          utility.name,
+          formattedDate + (utility.dueTime ? ` | ${utility.dueTime}` : ''),
+          utility.amount,
+          utility.status
+        ];
+        tableRows.push(utilityRow);
+      });
+      
+      let finalY = 80; // Default Y position if no table is generated
+      
+      // Check if autoTable is available
+      if (typeof pdf.autoTable === 'function') {
+        // Generate the PDF table using autoTable
+        pdf.autoTable({
+          head: [tableColumn],
+          body: tableRows,
+          startY: 80,
+          styles: {
+            fontSize: 10,
+            cellPadding: 3,
+            overflow: 'linebreak'
+          },
+          columnStyles: {
+            0: { cellWidth: 40 },
+            1: { cellWidth: 50 },
+            2: { cellWidth: 40 },
+            3: { cellWidth: 30 }
+          },
+          headStyles: {
+            fillColor: [66, 135, 245],
+            textColor: 255,
+            fontStyle: 'bold'
+          },
+          alternateRowStyles: {
+            fillColor: [240, 240, 240]
+          }
+        });
+        
+        // Get the final Y position after the table
+        finalY = pdf.previousAutoTable ? pdf.previousAutoTable.finalY : 80;
+      } else {
+        // Fallback for when autoTable is not available
+        pdf.setFontSize(10);
+        pdf.text('Utility List:', 14, 80);
+        
+        let yPos = 90;
+        // Add table header
+        pdf.setFont(undefined, 'bold'); // This replaces setFontStyle which may not be available in newer versions
+        pdf.text(tableColumn[0], 14, yPos);
+        pdf.text(tableColumn[1], 54, yPos);
+        pdf.text(tableColumn[2], 104, yPos);
+        pdf.text(tableColumn[3], 144, yPos);
+        pdf.setFont(undefined, 'normal'); // Reset font style
+        
+        // Add rows
+        tableRows.forEach((row, index) => {
+          yPos += 10;
+          if (yPos > 280) {
+            pdf.addPage();
+            yPos = 20;
+          }
+          pdf.text(row[0].toString().substring(0, 20), 14, yPos);
+          pdf.text(row[1].toString().substring(0, 20), 54, yPos);
+          pdf.text(row[2].toString().substring(0, 20), 104, yPos);
+          pdf.text(row[3].toString().substring(0, 20), 144, yPos);
+        });
+        
+        finalY = yPos + 10;
+      }
+      
+      // Add bill photos if available
+      let yPosition = finalY + 15;
+      pdf.setFontSize(14);
+      pdf.text('Bill Photos', 14, yPosition);
+      yPosition += 10;
+      
+      const photosPerPage = 2;  // Number of photos per page
+      let photoCount = 0;
+      
+      // Iterate through utilities with photos
+      utilities.forEach(utility => {
+        if (utility.photoUrl) {
+          photoCount++;
+          
+          // Check if we need a new page
+          if (photoCount > 1 && (photoCount - 1) % photosPerPage === 0) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+          
+          // Add photo title
+          pdf.setFontSize(12);
+          pdf.text(`${utility.name} (${formatDate(utility.dueDate)})`, 14, yPosition);
+          yPosition += 5;
+          
+          try {
+            // Add the image to the PDF
+            if (utility.photoUrl.startsWith('data:image')) {
+              pdf.addImage(utility.photoUrl, 'JPEG', 14, yPosition, 80, 60);
+              yPosition += 70;
+            }
+          } catch (err) {
+            console.error(`Error adding image for ${utility.name}:`, err);
+            pdf.text(`[Image not available]`, 14, yPosition);
+            yPosition += 10;
+          }
+        }
+      });
+      
+      // Save the PDF
+      pdf.save('Utility-Management-Report.pdf');
+      
+      // Show success message
+      setSuccessMessage('PDF successfully downloaded!');
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert(`Error generating PDF: ${error.message}. Please try again.`);
+    }
   };
 
   const formatDate = (dateString) => {
