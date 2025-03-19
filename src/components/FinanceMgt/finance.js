@@ -24,6 +24,12 @@ function Finance() {
     photo: null,
     photoPreview: null
   });
+  // New validation state for form fields
+  const [validationErrors, setValidationErrors] = useState({
+    name: '',
+    amount: '',
+    photo: ''
+  });
   const [chartData, setChartData] = useState([]);
   const chartRef = useRef(null);
 
@@ -134,14 +140,54 @@ function Finance() {
     setChartData(data);
   };
 
+  // Modified to include validation
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Perform validation based on field name
+    let error = '';
+    
+    if (name === 'name') {
+      if (value.length > 25) {
+        error = 'Name must not exceed 25 characters';
+      } else if (/\d/.test(value)) {
+        error = 'Name must not contain numbers';
+      }
+    } else if (name === 'amount') {
+      if (value && !/^[0-9]+(\.[0-9]{1,2})?$/.test(value)) {
+        error = 'Amount must be a positive number';
+      }
+    }
+    
+    // Update validation errors
+    setValidationErrors({
+      ...validationErrors,
+      [name]: error
+    });
+    
+    // Update form state
     setNewBill({ ...newBill, [name]: value });
   };
 
+  // Modified to include photo validation
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate file type (PNG only)
+      if (file.type !== 'image/png') {
+        setValidationErrors({
+          ...validationErrors,
+          photo: 'Only PNG images are allowed'
+        });
+        return;
+      }
+      
+      // Clear validation error if file is valid
+      setValidationErrors({
+        ...validationErrors,
+        photo: ''
+      });
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setNewBill({
@@ -154,8 +200,30 @@ function Finance() {
     }
   };
 
+  // Modified to validate all fields before submitting
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Perform validation checks for all fields
+    const nameError = newBill.name.length > 25 ? 'Name must not exceed 25 characters' : 
+                    /\d/.test(newBill.name) ? 'Name must not contain numbers' : '';
+    
+    const amountError = !newBill.amount ? 'Amount is required' :
+                      !/^[0-9]+(\.[0-9]{1,2})?$/.test(newBill.amount) ? 'Amount must be a positive number' : '';
+    
+    const photoError = newBill.photo && newBill.photo.type !== 'image/png' ? 'Only PNG images are allowed' : '';
+    
+    // Update validation errors
+    setValidationErrors({
+      name: nameError,
+      amount: amountError,
+      photo: photoError
+    });
+    
+    // Check if there are any validation errors
+    if (nameError || amountError || photoError) {
+      return; // Stop form submission if there are errors
+    }
     
     // Format the amount with currency if it's a number and doesn't already have currency
     let formattedAmount = newBill.amount;
@@ -200,7 +268,7 @@ function Finance() {
     // Show success message
     setShowSuccessMessage(true);
     
-    // Reset form
+    // Reset form and validation errors
     setNewBill({
       id: null,
       name: '',
@@ -208,6 +276,11 @@ function Finance() {
       amount: '',
       photo: null,
       photoPreview: null
+    });
+    setValidationErrors({
+      name: '',
+      amount: '',
+      photo: ''
     });
     setShowPopup(false);
   };
@@ -245,6 +318,13 @@ function Finance() {
         date: billToUpdate.date,
         amount: amount,
         photoPreview: billToUpdate.photoUrl
+      });
+      
+      // Clear validation errors when loading an existing bill
+      setValidationErrors({
+        name: '',
+        amount: '',
+        photo: ''
       });
       
       setIsUpdating(true);
@@ -292,7 +372,7 @@ function Finance() {
   };
 
   
-  // MODIFIED: PDF Download Function without Bill Images
+  // PDF Download Function without Bill Images
   const handlePdfDownload = async () => {
     try {
       // Show loading message
@@ -367,14 +447,12 @@ function Finance() {
           currentY += 10;
         }
       } else {
-       // doc.text('No monthly expense data available for chart.', 14, currentY);
         currentY += 10;
       }
       
       // Add bill details table
       doc.setFontSize(16);
       doc.setTextColor(41, 128, 185);
-     // doc.text('Bill Details', 14, currentY);
       currentY += 5;
       
       // Prepare bill data for table WITHOUT the "Has Image" column
@@ -410,18 +488,15 @@ function Finance() {
           currentY = doc.previousAutoTable.finalY + 10;
         } catch (tableError) {
           console.error('Error creating bill details table:', tableError);
-          //doc.text('Error generating bill details table.', 14, currentY);
           currentY += 10;
         }
       } else {
-       // doc.text('No bills available.', 14, currentY);
         currentY += 10;
       }
       
       // Add monthly expenses detail table
       doc.setFontSize(16);
       doc.setTextColor(41, 128, 185);
-     // doc.text('Monthly Expenses Detail', 14, currentY);
       currentY += 5;
       
       // Prepare monthly data for table
@@ -455,15 +530,11 @@ function Finance() {
           currentY = doc.previousAutoTable.finalY + 10;
         } catch (tableError) {
           console.error('Error creating monthly expenses table:', tableError);
-       // doc.text('Error generating monthly expenses table.', 14, currentY);
           currentY += 10;
         }
       } else {
-       // doc.text('No monthly expense data available.', 14, currentY);
         currentY += 10;
       }
-      
-
       
       // Add footer with page number
       const pageCount = doc.internal.getNumberOfPages();
@@ -518,6 +589,12 @@ function Finance() {
             amount: '',
             photo: null,
             photoPreview: null
+          });
+          // Reset validation errors when opening the form
+          setValidationErrors({
+            name: '',
+            amount: '',
+            photo: ''
           });
           setShowPopup(true);
         }}>
@@ -604,21 +681,25 @@ function Finance() {
         </button>
       </div>
 
-      {/* Bill Edit/Add Popup */}
+      {/* Bill Edit/Add Popup with Validation */}
       {showPopup && (
         <div className="popup-overlay">
           <div className="popup">
             <h3>{isUpdating ? 'Update Bill' : 'Add Bill'}</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>Bill Name</label>
+                <label>Bill Name (max 25 characters, no numbers)</label>
                 <input 
                   type="text" 
                   name="name" 
                   value={newBill.name}
                   onChange={handleInputChange} 
                   required 
+                  className={validationErrors.name ? 'input-error' : ''}
                 />
+                {validationErrors.name && (
+                  <div className="error-message">{validationErrors.name}</div>
+                )}
               </div>
               <div className="form-group">
                 <label>Date</label>
@@ -631,25 +712,33 @@ function Finance() {
                 />
               </div>
               <div className="form-group">
-                <label>Amount</label>
+                <label>Amount (positive numbers only)</label>
                 <input 
                   type="text" 
                   name="amount" 
                   value={newBill.amount}
                   onChange={handleInputChange} 
                   required 
+                  className={validationErrors.amount ? 'input-error' : ''}
                 />
+                {validationErrors.amount && (
+                  <div className="error-message">{validationErrors.amount}</div>
+                )}
               </div>
               <div className="form-group photo-options">
+                <label>Photo (PNG files only)</label>
                 <button type="button" onClick={handleTakePhoto}>Take a Photo</button>
                 <button type="button" onClick={handlePhotoLibrary}>Photo Library</button>
                 <input 
                   type="file"
                   id="photoInput"
-                  accept="image/*"
+                  accept="image/png"
                   onChange={handlePhotoChange}
                   style={{ display: 'none' }}
                 />
+                {validationErrors.photo && (
+                  <div className="error-message">{validationErrors.photo}</div>
+                )}
               </div>
               {newBill.photoPreview && (
                 <div className="photo-preview">
@@ -686,4 +775,3 @@ function Finance() {
 }
 
 export default Finance;
-
