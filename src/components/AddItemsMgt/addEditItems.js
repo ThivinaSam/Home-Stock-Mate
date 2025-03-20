@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { Button, Grid, GridColumn, Loader } from "semantic-ui-react";
 import { storage, db } from "../../firebase";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import NavBar from "../AddItemNavBar/navBar";
 import { uploadBytesResumable, ref, getDownloadURL } from "firebase/storage";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 
 const initialState = {
   item: "",
@@ -22,6 +30,19 @@ function AddItems() {
   const [errors, setErrors] = useState({});
   const [isSubmit, setIsSubmit] = useState(false);
   const navigate = useNavigate();
+  const { id } = useParams();
+
+  useEffect(() => {
+    id && getSingleItem();
+  }, [id]);
+
+  const getSingleItem = async () => {
+    const docRef = doc(db, "addItems", id);
+    const snapshot = await getDoc(docRef);
+    if (snapshot.exists()) {
+      setData({ ...snapshot.data() });
+    }
+  };
 
   useEffect(() => {
     const uploadFile = () => {
@@ -31,9 +52,10 @@ function AddItems() {
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       uploadTask.on(
-        "state_changed", 
+        "state_changed",
         (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           setProgress(progress);
           switch (snapshot.state) {
             case "paused":
@@ -45,14 +67,14 @@ function AddItems() {
             default:
               break;
           }
-        }, 
+        },
         (error) => {
           console.log(error);
         },
         () => {
           getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            setData((prev) => ({ ...prev, image: downloadURL }));  // Changed img to image
-          });  // Added missing closing parenthesis here
+            setData((prev) => ({ ...prev, image: downloadURL })); // Changed img to image
+          }); // Added missing closing parenthesis here
         }
       );
     };
@@ -91,15 +113,31 @@ function AddItems() {
     let errors = validate();
     if (Object.keys(errors).length) return setErrors(errors);
     setIsSubmit(true);
-      await addDoc(collection(db, "addItems"), {
-        ...data,
-        timestamp: serverTimestamp(),
-      });
-      navigate("/addItemHome");
+    if (!id) {
+      try {
+        await addDoc(collection(db, "addItems"), {
+          ...data,
+          timestamp: serverTimestamp(),
+        });
+      } catch (error) {
+        console.log(error);
+      }
+    } else {
+      try {
+        await updateDoc(doc(db, "addItems", id), {
+          ...data,
+          timestamp: serverTimestamp(),
+        });
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    navigate("/addItemHome");
   };
 
   return (
     <div>
+      <NavBar />
       <Grid
         centered
         verticalAlign="middle"
@@ -113,7 +151,9 @@ function AddItems() {
                 <Loader active inline="centered" size="huge" />
               ) : (
                 <>
-                  <h2 className="text-3xl font-bold mb-6">Add Item</h2>
+                  <h2 className="text-3xl font-bold mb-6">
+                    {id ? "Update Item" : "Add Item"}
+                  </h2>
                   <form className="space-y-4">
                     {/* Item Field */}
                     <div className="flex flex-col">
