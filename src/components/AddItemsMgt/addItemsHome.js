@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { db, storage } from "../../firebase";
 import {
   Button,
-  // Card,
-  // Grid,
   Container,
   Image,
   Table,
@@ -14,15 +12,18 @@ import NavBar from "../AddItemNavBar/navBar";
 import { collection, deleteDoc, onSnapshot, doc } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import ModelComp from "./modelComp";
-import AddItemModal from "./AddEditItemModal"; // Import the AddItemModal component
+import AddItemModal from "./AddEditItemModal"; 
+import MainSideBar from "../MainSideBar/mainSideBer";
+import { SearchIcon } from '@heroicons/react/solid'; // You may need to install @heroicons/react
 
 const AddItemsHome = () => {
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const [item, setItem] = useState({});
   const [loading, setLoading] = useState(false);
-  const [addItemModalOpen, setAddItemModalOpen] = useState(false); // State for AddItemModal
-  const [selectedItemId, setSelectedItemId] = useState(null); // State for selected item ID
+  const [addItemModalOpen, setAddItemModalOpen] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState(''); // New state for search
 
   // Function to refresh items list
   const refreshItems = () => {
@@ -107,10 +108,52 @@ const AddItemsHome = () => {
     }
   };
 
+  // Filter items based on search query
+  const filteredItems = items.filter((item) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      item.item.toLowerCase().includes(searchLower) ||
+      item.description.toLowerCase().includes(searchLower)
+    );
+  });
+
   return (
     <div>
+      <MainSideBar />
       <NavBar refreshItems={refreshItems} />
       <Container style={{ marginTop: "20px" }}>
+        {/* Search Bar */}
+        <div className="mb-6 relative">
+          <div className="relative flex items-center">
+            <input
+              type="text"
+              placeholder="Search by name or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full p-3 pl-10 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              {/* If using heroicons */}
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          {filteredItems.length === 0 && searchQuery && (
+            <p className="text-red-500 mt-2">No items match your search criteria.</p>
+          )}
+        </div>
+
         {loading ? (
           <Loader active inline="centered" />
         ) : (
@@ -128,8 +171,8 @@ const AddItemsHome = () => {
             </Table.Header>
 
             <Table.Body>
-              {items &&
-                items.map((item) => (
+              {filteredItems &&
+                filteredItems.map((item) => (
                   <Table.Row key={item.id}>
                     <Table.Cell>
                       <Image
