@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button, Grid, GridColumn, Loader } from "semantic-ui-react";
 import { storage, db } from "../../firebase";
 import { useParams, useNavigate } from "react-router-dom";
+import NavBar from "../AddItemNavBar/navBar";
 import { uploadBytesResumable, ref, getDownloadURL } from "firebase/storage";
 import {
   addDoc,
@@ -136,6 +137,7 @@ function AddItems() {
 
   return (
     <div>
+      <NavBar />
       <Grid
         centered
         verticalAlign="middle"
