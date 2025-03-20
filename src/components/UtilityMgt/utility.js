@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { storage, db } from "../../firebase";
+import MainSideBar from '../MainSideBar/mainSideBer';
 import { 
   collection,
   addDoc,
@@ -733,6 +734,7 @@ function UtilityMgt() {
 
   return (
     <div className="utility-container">
+    <MainSideBar />
       <h2>Utility Management</h2>
       
       {successMessage && (
