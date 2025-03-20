@@ -159,16 +159,20 @@ function UtilityMgt() {
 
   // Function to stop the alarm
   const stopAlarm = (utilityId) => {
-    // Stop the audio if it's playing
-    if (audioRefs.current[utilityId]) {
-      audioRefs.current[utilityId].pause();
-      audioRefs.current[utilityId].currentTime = 0;
-      // Remove the audio element reference
-      delete audioRefs.current[utilityId];
+    try {
+      // Stop the audio if it's playing
+      if (audioRefs.current[utilityId]) {
+        audioRefs.current[utilityId].pause();
+        audioRefs.current[utilityId].currentTime = 0;
+        // Remove the audio element reference
+        delete audioRefs.current[utilityId];
+      }
+      
+      // Remove from active alarms
+      setActiveAlarms(prev => prev.filter(id => id !== utilityId));
+    } catch (error) {
+      console.error("Error stopping alarm:", error);
     }
-    
-    // Remove from active alarms
-    setActiveAlarms(prevAlarms => prevAlarms.filter(id => id !== utilityId));
   };
 
   // Request notification permission on component mount
@@ -395,6 +399,7 @@ function UtilityMgt() {
     }
   };
 
+  // Update the togglePaymentStatus function
   const togglePaymentStatus = async (id) => {
     try {
       const utilityRef = doc(db, "Utility", id);
@@ -404,6 +409,11 @@ function UtilityMgt() {
       await updateDoc(utilityRef, {
         status: newStatus
       });
+
+      // Stop alarm if changing to Paid status
+      if (newStatus === 'Paid') {
+        stopAlarm(id);
+      }
 
       fetchUtilities(); // Refresh the list
       
