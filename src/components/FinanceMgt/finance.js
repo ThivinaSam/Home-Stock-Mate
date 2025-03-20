@@ -8,6 +8,8 @@ import './finance.css';
 import { storage, db } from '../../firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import MainSideBar from '../MainSideBar/mainSideBer';
+
 
 function Finance() {
   const [bills, setBills] = useState([]);
@@ -661,6 +663,7 @@ function Finance() {
 
   return (
     <div className="finance-container">
+      <MainSideBar />
       <h2>Finance Management</h2>
       
       {/* Success Message */}
