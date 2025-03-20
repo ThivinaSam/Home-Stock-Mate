@@ -14,11 +14,11 @@ const NavBar = ({ refreshItems }) => {
         <Container style={{ width: '80%', maxWidth: '1400px', padding: '0 10px' }}>
           <Menu.Item style={{ paddingLeft: '0' }}>
             <Header as="h3" inverted style={{ marginRight: '5px' }}>
-              Home Stock Mate
+              {/* Home Stock Mate */}
             </Header>
           </Menu.Item>
 
-          <Menu.Item name="Home" onClick={() => navigate("/addItemHome")} />
+          {/* <Menu.Item name="Home" onClick={() => navigate("/addItemHome")} /> */}
 
           {/* Spacer item - takes up available space */}
           <Menu.Item style={{ flex: 1 }}></Menu.Item>
