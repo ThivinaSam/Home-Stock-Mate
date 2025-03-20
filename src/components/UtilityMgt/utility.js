@@ -1,7 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { storage, db } from "../../firebase";
+import { 
+  collection,
+  addDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  query,
+  orderBy
+} from "firebase/firestore";
+import { 
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject
+} from "firebase/storage";
 import './utility.css';
 import { jsPDF } from 'jspdf';
-// Make sure this import is correct and the package is installed
 import 'jspdf-autotable';
 
 function UtilityMgt() {
@@ -25,41 +42,16 @@ function UtilityMgt() {
   const [searchTerm, setSearchTerm] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessages, setErrorMessages] = useState({});
+  const [progress, setProgress] = useState(0);
+  const [isSubmit, setIsSubmit] = useState(false);
   const audioRefs = useRef({}); // Reference to store multiple audio elements
   const countdownIntervalRef = useRef(null);
+  const [editingUtility, setEditingUtility] = useState(null);
 
   // Load utilities and notifications from localStorage on component mount
   useEffect(() => {
-    const savedUtilities = localStorage.getItem('utilities');
-    if (savedUtilities) {
-      setUtilities(JSON.parse(savedUtilities));
-    }
-    
-    const savedNotifications = localStorage.getItem('notifications');
-    if (savedNotifications) {
-      setNotifications(JSON.parse(savedNotifications));
-    }
-
-    const savedActiveAlarms = localStorage.getItem('activeAlarms');
-    if (savedActiveAlarms) {
-      setActiveAlarms(JSON.parse(savedActiveAlarms));
-    }
+    fetchUtilities();
   }, []);
-
-  // Save utilities to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('utilities', JSON.stringify(utilities));
-  }, [utilities]);
-
-  // Save notifications to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('notifications', JSON.stringify(notifications));
-  }, [notifications]);
-
-  // Save active alarms to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('activeAlarms', JSON.stringify(activeAlarms));
-  }, [activeAlarms]);
 
   // Auto-hide success message after 3 seconds
   useEffect(() => {
@@ -186,6 +178,18 @@ function UtilityMgt() {
     }
   }, []);
 
+  // Cleanup audio elements when component unmounts
+  useEffect(() => {
+    return () => {
+      Object.values(audioRefs.current).forEach(audio => {
+        if (audio) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+      });
+    };
+  }, []);
+
   // Validate utility name - only characters, max 25 chars
   const validateName = (name) => {
     if (!name) return "Utility name is required";
@@ -270,77 +274,91 @@ function UtilityMgt() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate all fields
-    const nameError = validateName(newUtility.name);
-    const dueDateError = validateDueDate(newUtility.dueDate);
-    const amountError = validateAmount(newUtility.amount);
-    const photoError = validatePhoto(newUtility.photo);
-    
-    // Collect all errors
-    const errors = {};
-    if (nameError) errors.name = nameError;
-    if (dueDateError) errors.dueDate = dueDateError;
-    if (amountError) errors.amount = amountError;
-    if (photoError) errors.photo = photoError;
-    
-    // If there are errors, display them and stop form submission
+    // Validate fields
+    const errors = validate();
     if (Object.keys(errors).length > 0) {
       setErrorMessages(errors);
       return;
     }
-    
-    // If validation passed, create a new utility object
-    const utilityToAdd = {
-      id: Date.now(), // Using timestamp as a simple ID
-      name: newUtility.name,
-      dueDate: newUtility.dueDate,
-      dueTime: newUtility.dueTime, // Save the time
-      amount: newUtility.amount,
-      photoUrl: newUtility.photoPreview,
-      status: 'UnPaid',
-      createdAt: new Date().toISOString()
-    };
 
-    // Add the new utility to the list
-    setUtilities([...utilities, utilityToAdd]);
-    
-    // Create a notification for this utility if due date and time are set
-    if (newUtility.dueDate && newUtility.dueTime) {
-      const dueDateTime = `${newUtility.dueDate}T${newUtility.dueTime}`;
-      const notificationToAdd = {
-        id: Date.now() + 1, // Different ID from utility
-        utilityId: utilityToAdd.id,
-        utilityName: newUtility.name,
-        amount: newUtility.amount,
-        dueDateTime: dueDateTime,
-        triggered: false
-      };
+    setIsSubmit(true);
+    try {
+      let imageUrl = newUtility.photoPreview;
       
-      setNotifications([...notifications, notificationToAdd]);
+      // Upload new image if exists
+      if (newUtility.photo instanceof File) {
+        // If updating and there's an existing photo, delete it
+        if (editingUtility && imageUrl) {
+          const oldImageRef = ref(storage, imageUrl);
+          await deleteObject(oldImageRef).catch(err => 
+            console.error("Error deleting old image:", err)
+          );
+        }
+
+        const storageRef = ref(storage, `Utility/${Date.now()}_${newUtility.photo.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, newUtility.photo);
+        
+        // Wait for upload to complete
+        await new Promise((resolve, reject) => {
+          uploadTask.on(
+            'state_changed',
+            (snapshot) => {
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setProgress(progress);
+            },
+            reject,
+            async () => {
+              imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
+              resolve();
+            }
+          );
+        });
+      }
+
+      // Prepare utility data
+      const utilityData = {
+        name: newUtility.name,
+        dueDate: newUtility.dueDate,
+        dueTime: newUtility.dueTime,
+        amount: newUtility.amount,
+        photoUrl: imageUrl,
+        timestamp: serverTimestamp()
+      };
+
+      if (editingUtility) {
+        // Update existing utility
+        const utilityRef = doc(db, "Utility", editingUtility);
+        await updateDoc(utilityRef, utilityData);
+        setSuccessMessage("Utility updated successfully!");
+      } else {
+        // Add new utility
+        utilityData.status = 'UnPaid'; // Only set status for new utilities
+        await addDoc(collection(db, "Utility"), utilityData);
+        setSuccessMessage("Utility added successfully!");
+      }
+
+      // Reset form and states
+      setShowPopup(false);
+      setEditingUtility(null);
+      setNewUtility({
+        name: '',
+        dueDate: '',
+        dueTime: '',
+        amount: '',
+        photo: null,
+        photoPreview: null,
+        status: 'UnPaid'
+      });
+      await fetchUtilities();
+
+    } catch (error) {
+      console.error("Error saving utility:", error);
+      setErrorMessages({ submit: "Error saving utility" });
     }
-    
-    // Reset form and close popup
-    setNewUtility({
-      name: '',
-      dueDate: '',
-      dueTime: '',
-      amount: '',
-      photo: null,
-      photoPreview: null,
-      status: 'UnPaid'
-    });
-    
-    // Clear error messages
-    setErrorMessages({});
-    
-    // Show success message
-    setSuccessMessage(`${utilityToAdd.name} utility has been successfully added!`);
-    
-    // Close popup
-    setShowPopup(false);
+    setIsSubmit(false);
   };
 
   const handlePhotoLibrary = () => {
@@ -354,56 +372,75 @@ function UtilityMgt() {
     document.getElementById('photoInput').click();
   };
 
-  const handleDelete = (id) => {
-    // Stop any active alarms for this utility
-    if (activeAlarms.includes(id)) {
-      stopAlarm(id);
-    }
-    
-    setUtilities(utilities.filter(utility => utility.id !== id));
-    
-    // Also delete any associated notifications
-    setNotifications(notifications.filter(notification => notification.utilityId !== id));
-  };
-
-  const togglePaymentStatus = (id) => {
-    setUtilities(utilities.map(utility => {
-      if (utility.id === id) {
-        const newStatus = utility.status === 'Paid' ? 'UnPaid' : 'Paid';
-        
-        // If new status is 'Paid', stop the alarm
-        if (newStatus === 'Paid' && activeAlarms.includes(id)) {
-          stopAlarm(id);
-        }
-        
-        return { ...utility, status: newStatus };
+  const handleDelete = async (id) => {
+    try {
+      // Get the utility to delete its image first
+      const utilityToDelete = utilities.find(utility => utility.id === id);
+      
+      // Delete image from storage if exists
+      if (utilityToDelete.photoUrl) {
+        const imageRef = ref(storage, utilityToDelete.photoUrl);
+        await deleteObject(imageRef);
       }
-      return utility;
-    }));
+      
+      // Delete from Firestore
+      await deleteDoc(doc(db, "Utility", id));
+      
+      setSuccessMessage("Utility deleted successfully!");
+      fetchUtilities(); // Refresh the list
+      
+    } catch (error) {
+      console.error("Error deleting utility:", error);
+      setErrorMessages({ delete: "Error deleting utility" });
+    }
   };
 
-  const handleUpdate = (id) => {
-    // Find the utility to update
-    const utilityToUpdate = utilities.find(utility => utility.id === id);
-    if (utilityToUpdate) {
-      // Reset error messages
-      setErrorMessages({});
+  const togglePaymentStatus = async (id) => {
+    try {
+      const utilityRef = doc(db, "Utility", id);
+      const utility = utilities.find(u => u.id === id);
+      const newStatus = utility.status === 'Paid' ? 'UnPaid' : 'Paid';
       
-      // Set it in the form
-      setNewUtility({
-        name: utilityToUpdate.name,
-        dueDate: utilityToUpdate.dueDate,
-        dueTime: utilityToUpdate.dueTime || '',
-        amount: utilityToUpdate.amount,
-        photoPreview: utilityToUpdate.photoUrl,
-        status: utilityToUpdate.status
+      await updateDoc(utilityRef, {
+        status: newStatus
       });
+
+      fetchUtilities(); // Refresh the list
       
-      // Remove the old utility (will be replaced on submit)
-      handleDelete(id);
+    } catch (error) {
+      console.error("Error updating status:", error);
+      setErrorMessages({ status: "Error updating status" });
+    }
+  };
+
+  const handleUpdate = async (id) => {
+    try {
+      // First get the utility to edit
+      const utilityToEdit = utilities.find(u => u.id === id);
+      if (!utilityToEdit) {
+        throw new Error("Utility not found");
+      }
+
+      // Set the utility data to the form
+      setNewUtility({
+        name: utilityToEdit.name,
+        dueDate: utilityToEdit.dueDate,
+        dueTime: utilityToEdit.dueTime || '',
+        amount: utilityToEdit.amount,
+        photo: null,
+        photoPreview: utilityToEdit.photoUrl,
+        status: utilityToEdit.status
+      });
+
+      // Set the editing utility ID
+      setEditingUtility(id);
       
       // Show the popup
       setShowPopup(true);
+
+    } catch (error) {
+      console.error("Error preparing update:", error);
+      setErrorMessages(prev => ({...prev, update: "Error preparing update"}));
     }
   };
 
@@ -632,6 +669,58 @@ function UtilityMgt() {
     return today.toISOString().split('T')[0]; // Format as YYYY-MM-DD
   };
 
+  const fetchUtilities = async () => {
+    try {
+      const utilitiesRef = collection(db, "Utility");
+      const q = query(utilitiesRef, orderBy("timestamp", "desc"));
+      const querySnapshot = await getDocs(q);
+      const utilitiesList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setUtilities(utilitiesList);
+    } catch (error) {
+      console.error("Error fetching utilities:", error);
+      setErrorMessages(prev => ({...prev, fetch: "Error fetching utilities"}));
+    }
+  };
+
+  // Add validate function that was missing
+  const validate = () => {
+    const errors = {};
+    
+    const nameError = validateName(newUtility.name);
+    if (nameError) errors.name = nameError;
+
+    const dueDateError = validateDueDate(newUtility.dueDate);
+    if (dueDateError) errors.dueDate = dueDateError;
+
+    const amountError = validateAmount(newUtility.amount);
+    if (amountError) errors.amount = amountError;
+
+    if (newUtility.photo) {
+      const photoError = validatePhoto(newUtility.photo);
+      if (photoError) errors.photo = photoError;
+    }
+
+    return errors;
+  };
+
+  const handleClosePopup = () => {
+    setShowPopup(false);
+    setEditingUtility(null);
+    setNewUtility({
+      name: '',
+      dueDate: '',
+      dueTime: '',
+      amount: '',
+      photo: null,
+      photoPreview: null,
+      status: 'UnPaid'
+    });
+    setErrorMessages({});
+  };
+
   return (
     <div className="utility-container">
       <h2>Utility Management</h2>
@@ -735,7 +824,7 @@ function UtilityMgt() {
       {showPopup && (
         <div className="popup-overlay">
           <div className="popup">
-            <h3>Add Utility</h3>
+            <h3>{editingUtility ? 'Update Utility' : 'Add Utility'}</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label>Utility Name</label>
@@ -807,10 +896,7 @@ function UtilityMgt() {
               )}
               <div className="form-actions">
                 <button type="submit">Submit</button>
-                <button type="button" onClick={() => {
-                  setShowPopup(false);
-                  setErrorMessages({});
-                }}>Cancel</button>
+                <button type="button" onClick={handleClosePopup}>Cancel</button>
               </div>
             </form>
           </div>
