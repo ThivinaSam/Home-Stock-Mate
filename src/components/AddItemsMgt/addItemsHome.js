@@ -122,7 +122,7 @@ const AddItemsHome = () => {
     <div>
       <MainSideBar />
       <NavBar refreshItems={refreshItems} />
-      <div className="ml-64 p-4"> {/* Add margin to account for sidebar */}
+      <div className="p-4"> {/* Add margin to account for sidebar */}
         <Container>
           {/* Search Bar */}
           <div className="mb-6 relative">
