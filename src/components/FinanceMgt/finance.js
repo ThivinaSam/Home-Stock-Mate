@@ -5,7 +5,7 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import './finance.css';
-import { storage, firestore } from '../../firebase';
+import { storage, db } from '../../firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
@@ -45,7 +45,7 @@ function Finance() {
   useEffect(() => {
     const fetchBills = async () => {
       try {
-        const querySnapshot = await getDocs(collection(firestore, 'finance'));
+        const querySnapshot = await getDocs(collection(db, 'finance'));
         const billsData = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -317,7 +317,7 @@ function Finance() {
         }
   
         // Update document
-        const billRef = doc(firestore, 'finance', newBill.id);
+        const billRef = doc(db, 'finance', newBill.id);
         await updateDoc(billRef, billData);
         
         // Update local state
@@ -329,7 +329,7 @@ function Finance() {
       } else {
         // Add new document
         billData.createdAt = new Date().toISOString();
-        const docRef = await addDoc(collection(firestore, 'finance'), billData);
+        const docRef = await addDoc(collection(db, 'finance'), billData);
         
         // Update local state
         setBills([...bills, { id: docRef.id, ...billData }]);
@@ -376,7 +376,7 @@ function Finance() {
       const billToDelete = bills.find(bill => bill.id === id);
       
       // Delete from Firestore
-      await deleteDoc(doc(firestore, 'finance', id));
+      await deleteDoc(doc(db, 'finance', id));
 
       // Delete photo from Storage if exists
       if (billToDelete.photoUrl) {
