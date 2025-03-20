@@ -5,6 +5,9 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import './finance.css';
+import { storage, firestore } from '../../firebase';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 function Finance() {
   const [bills, setBills] = useState([]);
@@ -40,28 +43,27 @@ function Finance() {
   const billTypes = ['Grocery','Food', 'Fuel', 'Utility', 'Clothing', 'Medicine','Other'];
 
   useEffect(() => {
-    const savedBills = localStorage.getItem('bills');
-    if (savedBills) {
+    const fetchBills = async () => {
       try {
-        const parsedBills = JSON.parse(savedBills);
-        setBills(parsedBills);
-        setFilteredBills(parsedBills); // Initialize filtered bills with all bills
+        const querySnapshot = await getDocs(collection(firestore, 'finance'));
+        const billsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setBills(billsData);
+        setFilteredBills(billsData);
       } catch (error) {
-        console.error('Error parsing saved bills:', error);
+        console.error('Error fetching bills:', error);
         setBills([]);
         setFilteredBills([]);
       }
-    }
+    };
+    fetchBills();
   }, []);
 
   useEffect(() => {
-    // Save to localStorage whenever bills change
-    localStorage.setItem('bills', JSON.stringify(bills));
-    
-    // Process data for the chart when bills change
+    // Keep these lines
     generateChartData();
-    
-    // Update filtered bills when all bills change
     filterBills();
   }, [bills]);
 
@@ -192,24 +194,34 @@ function Finance() {
   };
 
   // Modified to include photo validation
-  const handlePhotoChange = (e) => {
+  const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file type (PNG only)
-      if (file.type !== 'image/png') {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
         setValidationErrors({
           ...validationErrors,
-          photo: 'Only PNG images are allowed'
+          photo: 'Only image files are allowed'
         });
         return;
       }
       
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setValidationErrors({
+          ...validationErrors,
+          photo: 'File size must be less than 5MB'
+        });
+        return;
+      }
+
       // Clear validation error if file is valid
       setValidationErrors({
         ...validationErrors,
         photo: ''
       });
       
+      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setNewBill({
@@ -223,7 +235,7 @@ function Finance() {
   };
 
   // Modified to validate date along with other fields before submitting
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Perform validation checks for all fields
@@ -270,64 +282,85 @@ function Finance() {
     if (!isNaN(parseFloat(newBill.amount)) && !formattedAmount.includes('LKR:')) {
       formattedAmount = `LKR:${parseFloat(newBill.amount)}`;
     }
-    
-    if (isUpdating) {
-      // Update existing bill
-      const updatedBills = bills.map(bill => {
-        if (bill.id === newBill.id) {
-          return {
-            ...bill,
-            name: newBill.name,
-            date: newBill.date,
-            amount: formattedAmount,
-            type: newBill.type, // Include type in update
-            photoUrl: newBill.photoPreview || bill.photoUrl,
-            updatedAt: new Date().toISOString()
-          };
-        }
-        return bill;
-      });
+
+    try {
+      setShowSuccessMessage(false); // Reset success message
       
-      setBills(updatedBills);
-      setIsUpdating(false);
-      setSuccessMessage(`Bill "${newBill.name}" was successfully updated!`);
-    } else {
-      // Add new bill
-      const billToAdd = {
-        id: Date.now(),
+      let photoUrl = newBill.photoPreview; // Keep existing photo URL for updates
+      
+      // Upload new photo if provided
+      if (newBill.photo && newBill.photo instanceof File) {
+        const storageRef = ref(storage, `finance/${Date.now()}_${newBill.photo.name}`);
+        const uploadResult = await uploadBytes(storageRef, newBill.photo);
+        photoUrl = await getDownloadURL(uploadResult.ref);
+      }
+  
+      const billData = {
         name: newBill.name,
         date: newBill.date,
         amount: formattedAmount,
-        type: newBill.type, // Include type in new bill
-        photoUrl: newBill.photoPreview,
-        createdAt: new Date().toISOString()
+        type: newBill.type,
+        photoUrl: photoUrl || null,
+        updatedAt: new Date().toISOString()
       };
-      
-      setBills([...bills, billToAdd]);
-      setSuccessMessage(`New bill "${newBill.name}" was successfully added!`);
+  
+      if (isUpdating) {
+        // If updating and there's an old photo, delete it first
+        const oldBill = bills.find(b => b.id === newBill.id);
+        if (oldBill?.photoUrl && oldBill.photoUrl !== photoUrl) {
+          try {
+            const oldPhotoRef = ref(storage, oldBill.photoUrl);
+            await deleteObject(oldPhotoRef);
+          } catch (error) {
+            console.error('Error deleting old photo:', error);
+          }
+        }
+  
+        // Update document
+        const billRef = doc(firestore, 'finance', newBill.id);
+        await updateDoc(billRef, billData);
+        
+        // Update local state
+        setBills(bills.map(bill => 
+          bill.id === newBill.id ? { ...bill, ...billData } : bill
+        ));
+        
+        setSuccessMessage(`Bill "${newBill.name}" was successfully updated!`);
+      } else {
+        // Add new document
+        billData.createdAt = new Date().toISOString();
+        const docRef = await addDoc(collection(firestore, 'finance'), billData);
+        
+        // Update local state
+        setBills([...bills, { id: docRef.id, ...billData }]);
+        
+        setSuccessMessage(`New bill "${newBill.name}" was successfully added!`);
+      }
+  
+      // Reset form
+      setShowSuccessMessage(true);
+      setNewBill({
+        id: null,
+        name: '',
+        date: '',
+        amount: '',
+        type: '',
+        photo: null,
+        photoPreview: null
+      });
+      setValidationErrors({
+        name: '',
+        date: '',
+        amount: '',
+        type: '',
+        photo: ''
+      });
+      setShowPopup(false);
+    } catch (error) {
+      console.error('Error saving bill:', error);
+      setSuccessMessage('Error saving bill. Please try again.');
+      setShowSuccessMessage(true);
     }
-    
-    // Show success message
-    setShowSuccessMessage(true);
-    
-    // Reset form and validation errors
-    setNewBill({
-      id: null,
-      name: '',
-      date: '',
-      amount: '',
-      type: '', // Reset type
-      photo: null,
-      photoPreview: null
-    });
-    setValidationErrors({
-      name: '',
-      date: '',
-      amount: '',
-      type: '',
-      photo: ''
-    });
-    setShowPopup(false);
   };
 
   const handlePhotoLibrary = () => {
@@ -338,12 +371,30 @@ function Finance() {
     document.getElementById('photoInput').click();
   };
 
-  const handleDelete = (id) => {
-    const billToDelete = bills.find(bill => bill.id === id);
-    setBills(bills.filter(bill => bill.id !== id));
-    
-    if (billToDelete) {
+  const handleDelete = async (id) => {
+    try {
+      const billToDelete = bills.find(bill => bill.id === id);
+      
+      // Delete from Firestore
+      await deleteDoc(doc(firestore, 'finance', id));
+
+      // Delete photo from Storage if exists
+      if (billToDelete.photoUrl) {
+        try {
+          const photoRef = ref(storage, billToDelete.photoUrl);
+          await deleteObject(photoRef);
+        } catch (photoError) {
+          console.error('Error deleting photo:', photoError);
+        }
+      }
+
+      // Update local state
+      setBills(bills.filter(bill => bill.id !== id));
       setSuccessMessage(`Bill "${billToDelete.name}" was successfully deleted!`);
+      setShowSuccessMessage(true);
+    } catch (error) {
+      console.error('Error deleting bill:', error);
+      setSuccessMessage('Error deleting bill. Please try again.');
       setShowSuccessMessage(true);
     }
   };
