@@ -12,9 +12,8 @@ import NavBar from "../AddItemNavBar/navBar";
 import { collection, deleteDoc, onSnapshot, doc } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import ModelComp from "./modelComp";
-import AddItemModal from "./AddEditItemModal"; 
+import AddItemModal from "./AddEditItemModal";
 import MainSideBar from "../MainSideBar/mainSideBer";
-import { SearchIcon } from '@heroicons/react/solid'; // You may need to install @heroicons/react
 
 const AddItemsHome = () => {
   const [items, setItems] = useState([]);
@@ -23,7 +22,7 @@ const AddItemsHome = () => {
   const [loading, setLoading] = useState(false);
   const [addItemModalOpen, setAddItemModalOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(null);
-  const [searchQuery, setSearchQuery] = useState(''); // New state for search
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Function to refresh items list
   const refreshItems = () => {
@@ -59,6 +58,17 @@ const AddItemsHome = () => {
     setOpen(true);
     setItem(item);
   };
+
+  // Filter items based on search query
+  const filteredItems = items.filter((item) => {
+    if (searchQuery === '') return true; // Show all items when search is empty
+    
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      (item.item && item.item.toLowerCase().includes(searchLower)) || 
+      (item.description && item.description.toLowerCase().includes(searchLower))
+    );
+  });
 
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this item?")) {
@@ -108,71 +118,61 @@ const AddItemsHome = () => {
     }
   };
 
-  // Filter items based on search query
-  const filteredItems = items.filter((item) => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      item.item.toLowerCase().includes(searchLower) ||
-      item.description.toLowerCase().includes(searchLower)
-    );
-  });
-
   return (
     <div>
       <MainSideBar />
       <NavBar refreshItems={refreshItems} />
-      <Container style={{ marginTop: "20px" }}>
-        {/* Search Bar */}
-        <div className="mb-6 relative">
-          <div className="relative flex items-center">
-            <input
-              type="text"
-              placeholder="Search by name or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full p-3 pl-10 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-              {/* If using heroicons */}
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
+      <div className="ml-64 p-4"> {/* Add margin to account for sidebar */}
+        <Container>
+          {/* Search Bar */}
+          <div className="mb-6 relative">
+            <div className="relative flex items-center">
+              <input
+                type="text"
+                placeholder="Search by name or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full p-3 pl-10 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-              </button>
+              </div>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            {filteredItems.length === 0 && searchQuery && (
+              <p className="text-red-500 mt-2">No items match your search criteria.</p>
             )}
           </div>
-          {filteredItems.length === 0 && searchQuery && (
-            <p className="text-red-500 mt-2">No items match your search criteria.</p>
-          )}
-        </div>
 
-        {loading ? (
-          <Loader active inline="centered" />
-        ) : (
-          <Table celled>
-            <Table.Header>
-              <Table.Row>
-                <Table.HeaderCell>Image</Table.HeaderCell>
-                <Table.HeaderCell>Name</Table.HeaderCell>
-                <Table.HeaderCell>Description</Table.HeaderCell>
-                <Table.HeaderCell>Date</Table.HeaderCell>
-                <Table.HeaderCell>Quantity</Table.HeaderCell>
-                <Table.HeaderCell>Price</Table.HeaderCell>
-                <Table.HeaderCell>Actions</Table.HeaderCell>
-              </Table.Row>
-            </Table.Header>
+          {loading ? (
+            <Loader active inline="centered" />
+          ) : (
+            <Table celled>
+              <Table.Header>
+                <Table.Row>
+                  <Table.HeaderCell>Image</Table.HeaderCell>
+                  <Table.HeaderCell>Name</Table.HeaderCell>
+                  <Table.HeaderCell>Description</Table.HeaderCell>
+                  <Table.HeaderCell>Date</Table.HeaderCell>
+                  <Table.HeaderCell>Quantity</Table.HeaderCell>
+                  <Table.HeaderCell>Price</Table.HeaderCell>
+                  <Table.HeaderCell>Actions</Table.HeaderCell>
+                </Table.Row>
+              </Table.Header>
 
-            <Table.Body>
-              {filteredItems &&
-                filteredItems.map((item) => (
+              <Table.Body>
+                {filteredItems.map((item) => (
                   <Table.Row key={item.id}>
                     <Table.Cell>
                       <Image
@@ -206,50 +206,25 @@ const AddItemsHome = () => {
                     </Table.Cell>
                   </Table.Row>
                 ))}
-            </Table.Body>
-          </Table>
-        )}
+              </Table.Body>
+            </Table>
+          )}
 
-        <ModelComp
-          open={open}
-          setOpen={setOpen}
-          item={item}
-          handleDelete={handleDelete}
-        />
+          <ModelComp
+            open={open}
+            setOpen={setOpen}
+            item={item}
+            handleDelete={handleDelete}
+          />
 
-        <AddItemModal
-          open={addItemModalOpen}
-          setOpen={setAddItemModalOpen}
-          itemId={selectedItemId}
-          refreshItems={refreshItems}
-        />
-
-        {/* Add the modal component outside of the map function */}
-        {/* <Modal open={open} onClose={() => setOpen(false)}>
-        <Modal.Header>Item Details</Modal.Header>
-        <Modal.Content>
-          <Modal.Description>
-            {item.image && (
-              <Image
-                src={item.image}
-                size="medium"
-                centered
-                style={{ marginBottom: "20px" }}
-              />
-            )}
-            <h3>Name: {item.item}</h3>
-            <p><strong>Description:</strong> {item.description}</p>
-            <p><strong>Date:</strong> {item.date}</p>
-            <p><strong>Price:</strong> {item.price}</p>
-          </Modal.Description>
-        </Modal.Content>
-        <Modal.Actions>
-          <Button color="red" onClick={() => setOpen(false)}>
-            Close
-          </Button>
-        </Modal.Actions>
-      </Modal> */}
-      </Container>
+          <AddItemModal
+            open={addItemModalOpen}
+            setOpen={setAddItemModalOpen}
+            itemId={selectedItemId}
+            refreshItems={refreshItems}
+          />
+        </Container>
+      </div>
     </div>
   );
 };
