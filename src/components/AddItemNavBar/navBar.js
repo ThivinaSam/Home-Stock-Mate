@@ -28,16 +28,16 @@ const NavBar = ({ refreshItems }) => {
             </Link>
           </Menu.Item>
           <Menu.Item>
-            <h2 className="text-2xl">React Firebase CRUD with Upload Image</h2>
+            <h2 className="text-2xl">Home Stock Mate</h2>
           </Menu.Item>
-          <Menu.Item position="right">
+          {/* <Menu.Item position="right">
             <Button size="mini" primary onClick={() => navigate("/addItem")}>
               Add Item
             </Button>
             <Button size="mini" primary onClick={() => navigate("/addItem")}>
               Get Item
             </Button>
-          </Menu.Item>
+          </Menu.Item> */}
 
           <Menu.Item style={{ flex: 1 }}></Menu.Item>
 
