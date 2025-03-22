@@ -20,6 +20,7 @@ const GetEditItems = () => {
   const [progress, setProgress] = useState(null);
   const [errors, setErrors] = useState({});
   const [isSubmit, setIsSubmit] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (file) {
@@ -88,6 +89,7 @@ const GetEditItems = () => {
         await deleteDoc(doc(db, "addItems", docId));
 
         console.log("✅ Item moved successfully.");
+        navigate("/getItemHome")
       });
     } catch (error) {
       console.error("🔥 Error moving item:", error);
