@@ -41,31 +41,42 @@ const GetItemsHome = () => {
     }
   };
 
+  // Format date string to a more readable format
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    } catch (error) {
+      return dateString || "N/A";
+    }
+  };
+
   return (
     <div>
       <MainSideBar />
-      <h2>Removed Items</h2>
+      <h2>Retrieved Items</h2>
       <Table celled>
         <Table.Header>
           <Table.Row>
             <Table.HeaderCell>Item</Table.HeaderCell>
-            <Table.HeaderCell>Description</Table.HeaderCell>
+            <Table.HeaderCell>Expiry Date</Table.HeaderCell>
+            <Table.HeaderCell>Status</Table.HeaderCell>
             <Table.HeaderCell>Quantity</Table.HeaderCell>
-            <Table.HeaderCell>Price</Table.HeaderCell>
-            <Table.HeaderCell>Date Moved</Table.HeaderCell>
-            <Table.HeaderCell>Actions</Table.HeaderCell> {/* Added Actions column */}
+            <Table.HeaderCell>Date Retrieved</Table.HeaderCell>
+            <Table.HeaderCell>Actions</Table.HeaderCell>
           </Table.Row>
         </Table.Header>
         <Table.Body>
           {items.map((item) => (
             <Table.Row key={item.id}>
               <Table.Cell>{item.item}</Table.Cell>
-              <Table.Cell>{item.description}</Table.Cell>
-              <Table.Cell>{item.quantity}</Table.Cell>
-              <Table.Cell>{item.price}</Table.Cell>
-              <Table.Cell>{item.movedAt ? item.movedAt.toDate().toLocaleString() : "N/A"}</Table.Cell>
+              <Table.Cell>{item.exDate}</Table.Cell>
+              <Table.Cell>{item.statuss}</Table.Cell>
+              <Table.Cell>{item.qty}</Table.Cell>
+              <Table.Cell>{formatDate(item.getDate)}</Table.Cell>
               <Table.Cell>
-                {/* Action Buttons */}
                 <Button color="blue" onClick={() => handleEdit(item.id)}>
                   Edit
                 </Button>
