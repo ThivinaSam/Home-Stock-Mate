@@ -1,46 +1,60 @@
 import React, { useState } from "react";
-import { Menu, Header, Button, Container } from "semantic-ui-react";
-import { useNavigate } from "react-router-dom";
-import AddItemModal from "../AddItemsMgt/AddEditItemModal";
+import { Menu, Button, Container, Image } from "semantic-ui-react";
+import { useNavigate, Link } from "react-router-dom";
+import AddItemModal from "../AddItemsMgt/AddEditItemModal"; // Make sure this path is correct
+// import logo from "../../assets/logo.png"; // Ensure the logo path is correct
 
 const NavBar = ({ refreshItems }) => {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
   return (
-    <>
-      <Menu size="large" inverted style={{ margin: 0 }}>
-        {/* Use a customized Container with less padding */}
-        <Container style={{ width: '80%', maxWidth: '1400px', padding: '0 10px' }}>
-          <Menu.Item style={{ paddingLeft: '0' }}>
-            <Header as="h3" inverted style={{ marginRight: '5px' }}>
-              {/* Home Stock Mate */}
-            </Header>
+    <div>
+      <Menu
+        inverted
+        borderless
+        style={{
+          padding: "0",
+          marginBottom: "20px",
+          minHeight: "40px",
+          height: "80px",
+        }}
+        attached
+      >
+        <Container>
+          <Menu.Item name="home">
+            <Link to="/">
+              <Image size="tiny" alt="logo" />
+            </Link>
+          </Menu.Item>
+          <Menu.Item>
+            <h2 className="text-2xl">React Firebase CRUD with Upload Image</h2>
+          </Menu.Item>
+          <Menu.Item position="right">
+            <Button size="mini" primary onClick={() => navigate("/addItem")}>
+              Add Item
+            </Button>
+            <Button size="mini" primary onClick={() => navigate("/addItem")}>
+              Get Item
+            </Button>
           </Menu.Item>
 
-          {/* <Menu.Item name="Home" onClick={() => navigate("/addItemHome")} /> */}
-
-          {/* Spacer item - takes up available space */}
           <Menu.Item style={{ flex: 1 }}></Menu.Item>
 
-          {/* Right-aligned items in correct order */}
           <Menu.Menu position="right">
             <Menu.Item onClick={() => navigate("/")}>
               Go to Dashboard
             </Menu.Item>
-            
-            <Menu.Item style={{ paddingRight: '0' }}>
-              <Button primary onClick={() => setOpen(true)}>
-                Add Item
-              </Button>
+            <Menu.Item style={{ paddingRight: "0" }}>
+              <Button primary onClick={() => setOpen(true)}>Add Item</Button>
             </Menu.Item>
           </Menu.Menu>
         </Container>
       </Menu>
 
-      {/* Add the modal component */}
+      {/* Add Item Modal */}
       <AddItemModal open={open} setOpen={setOpen} refreshItems={refreshItems} />
-    </>
+    </div>
   );
 };
 
