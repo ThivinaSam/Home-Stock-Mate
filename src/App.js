@@ -44,6 +44,7 @@ function App() {
             <Route path="/addItemHome" element={<RequireAuth><AddItemsHome/></RequireAuth>} />
             <Route path="/getItemHome" element={<RequireAuth><GetItemsHome/></RequireAuth>} />
             <Route path="/updateGetItem/:id" element={<RequireAuth><UpdateGetItem /></RequireAuth>} />
+            <Route path="/" element={<Login />} />
 
           </Routes>
       
