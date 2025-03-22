@@ -9,8 +9,9 @@ import AddItemsMgt from './components/AddItemsMgt/addEditItems';
 import GetItemsMgt from './components/GetItemsMgt/getItems';
 import FinanceMgt from './components/FinanceMgt/finance';
 import UtilityMgt from './components/UtilityMgt/utility';
-import NavBar from './components/AddItemNavBar/navBar';
+// import NavBar from './components/AddItemNavBar/navBar';
 import AddItemsHome from './components/AddItemsMgt/addItemsHome';
+import UpdateItem from './components/AddItemsMgt/addEditItems';
 
 function App() {
   const {currentUser} = useContext(AuthContext)
@@ -26,7 +27,7 @@ function App() {
   return (
     <div className="App">
       <React.Fragment>
-        <NavBar />
+        {/* <NavBar /> */}
           <Routes>
             
             <Route path="/login" element={<Login />} />
@@ -36,7 +37,7 @@ function App() {
             <Route path="/finance" element={<RequireAuth><FinanceMgt/></RequireAuth>} />
             <Route path="/utility" element={<RequireAuth><UtilityMgt/></RequireAuth>} />
             <Route path="/addItem" element={<RequireAuth><AddItemsMgt/></RequireAuth>} />
-            <Route path="/updateItem/:id" element={<RequireAuth><AddItemsMgt/></RequireAuth>} />
+            <Route path="/updateItem/:id" element={<RequireAuth><UpdateItem/></RequireAuth>} />
             <Route path="/addItemHome" element={<RequireAuth><AddItemsHome/></RequireAuth>} />
             
 

@@ -1,29 +1,50 @@
-import React from 'react'
-import { Menu, Container, Button, Image } from 'semantic-ui-react'
-import { useNavigate } from 'react-router-dom'
-import logo from '../../assets/react.svg'
+import React from "react";
+import { Modal, Button, Image } from "semantic-ui-react";
+import { useNavigate } from "react-router-dom";
 
-const modelComp = () => {
-
-    const navigate = useNavigate();
+const ModelComp = ({
+  open,
+  setOpen,
+  item,
+  id,
+  handleDelete
+}) => {
+  const navigate = useNavigate();
 
   return (
-    <div>
-      <Menu inverted borderless style={{padding: "0.3rem", marginBottom: "20px"}} attached>
-        <Menu.Item name="home">
-            <link to = '/'>
-                <Image src={logo} size="mini" alt="logo"/>
-            </link>
-        </Menu.Item>
-        <Menu.Item>
-            <h2>React Firebase CRUD with Upload Image</h2>
-        </Menu.Item>
-        <Menu.Item position="right">
-            <Button size="mini" primary onClick={() => navigate("/addItem")}></Button>
-        </Menu.Item>
-      </Menu>
-    </div>
-  )
-}
+    <Modal open={open} onClose={() => setOpen(false)}>
+      <Modal.Header>Item: {item.item}</Modal.Header>
+      <Modal.Content>
+        <Modal.Description>
+          {item.image && (
+            <Image
+              src={item.image || "https://react.semantic-ui.com/images/wireframe/image.png"}
+              size="medium"
+              centered
+              style={{ marginBottom: "20px" }}
+            />
+          )}
+          <p><strong>Item Name:</strong>  {item.item}</p>
+          <p><strong>Description:</strong>  {item.description}</p>
+          <p><strong>Date:</strong> {item.date}</p>
+          <p><strong>Quantity:</strong> {item.quantity}</p>
+          <p><strong>Price:</strong>  {item.price}</p>
+        </Modal.Description>
+      </Modal.Content>
+      <Modal.Actions style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          color="red"
+          content="Delete"
+          labelPosition="right"
+          icon="trash"
+          onClick={() => item && handleDelete(item.id)}
+        />
+        <Button color="black" onClick={() => setOpen(false)}>
+          Close
+        </Button>
+      </Modal.Actions>
+    </Modal>
+  );
+};
 
-export default modelComp
+export default ModelComp;
