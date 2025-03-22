@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Button, Form, Grid, Loader } from "semantic-ui-react";
-import { collection, query, where, getDocs, deleteDoc, doc, setDoc } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+  doc,
+  setDoc,
+} from "firebase/firestore";
 import { useParams, useNavigate } from "react-router-dom";
 import { ref, getDownloadURL, uploadBytesResumable } from "firebase/storage";
 import { db, storage } from "../../firebase";
@@ -72,12 +80,15 @@ const GetEditItems = () => {
       return;
     }
 
+    setIsSubmit(true);
+
     try {
       const q = query(collection(db, "addItems"), where("item", "==", item));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
         console.log("❌ Item does not exist in addItems collection.");
+        setIsSubmit(false);
         return;
       }
 
@@ -85,14 +96,35 @@ const GetEditItems = () => {
         const docData = document.data();
         const docId = document.id;
 
-        await setDoc(doc(db, "getItems", docId), docData);
+        // Create a new object with original item name but updated form data
+        const updatedData = {
+          item: docData.item, // Keep the original item name
+          // Use form values for other fields
+          exDate: exDate,
+          statuss: statuss,
+          qty: qty,
+          // Timestamp for when the item was gotten
+          getDate: new Date().toISOString(),
+        };
+
+        // Only add the img field if it exists in the original document
+        if (docData.img) {
+          updatedData.img = docData.img;
+        }
+
+        // Save to getItems collection
+        await setDoc(doc(db, "getItems", docId), updatedData);
+
+        // Delete from addItems collection
         await deleteDoc(doc(db, "addItems", docId));
 
-        console.log("✅ Item moved successfully.");
-        navigate("/getItemHome")
+        console.log("✅ Item moved successfully with updated data.");
+        setIsSubmit(false);
+        navigate("/getItemHome");
       });
     } catch (error) {
       console.error("🔥 Error moving item:", error);
+      setIsSubmit(false);
     }
   };
 
