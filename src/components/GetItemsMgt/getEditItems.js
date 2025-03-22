@@ -162,6 +162,7 @@ const GetEditItems = () => {
                       name="exDate"
                       onChange={handleChange}
                       value={exDate}
+                      type="Date"
                     />
                     <Form.Input
                       label="Status"
