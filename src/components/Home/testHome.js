@@ -5,6 +5,7 @@ import { collection, addDoc } from "firebase/firestore";
 import { ref, uploadBytes, listAll, getDownloadURL } from "firebase/storage";
 import { useState, useEffect } from "react";
 import { storage } from "../../firebase";
+import MainSideBar from "../MainSideBar/mainSideBer";
 
 function Home() {
   const messageRef = React.useRef();
@@ -55,8 +56,9 @@ function Home() {
 
   return (
     <div>
+      <MainSideBar />
       <h2>Home</h2>
-      <p>Welcome to the Home page!</p>
+      {/* <p>Welcome to the Home page!</p>
       <form onSubmit={handleSave}>
         <label>Message</label>
         <input type="text" ref={messageRef} />
@@ -74,7 +76,7 @@ function Home() {
         {imageList.map((url) => {
           return <img src={url} alt="" />;
         })}
-      </form>
+      </form> */}
     </div>
   );
 }
