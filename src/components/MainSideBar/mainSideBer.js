@@ -19,7 +19,7 @@ function MainSideBar() {
   const [collapsed, setCollapsed] = useState(false);
 
   const menuItems = [
-    { name: 'Home', path: '/home', icon: HomeIcon },
+    { name: 'Home', path: '/testHome', icon: HomeIcon },
     { name: 'Add Item', path: '/addItemHome', icon: PlusCircleIcon },
     { name: 'Get Item', path: '/getItems', icon: ShoppingCartIcon },
     { name: 'Finance', path: '/finance', icon: CashIcon },
