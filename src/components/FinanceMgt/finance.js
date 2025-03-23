@@ -10,7 +10,6 @@ import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import MainSideBar from '../MainSideBar/mainSideBer';
 
-
 function Finance() {
   const [bills, setBills] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
@@ -108,32 +107,37 @@ function Finance() {
   };
 
   const generateChartData = () => {
+    // Get current year
+    const currentYear = new Date().getFullYear();
+
     // Create an object to hold monthly totals
     const monthlyTotals = {
       'Jan': 0, 'Feb': 0, 'Mar': 0, 'Apr': 0, 'May': 0, 'Jun': 0,
       'Jul': 0, 'Aug': 0, 'Sep': 0, 'Oct': 0, 'Nov': 0, 'Dec': 0
     };
 
-    // Sum expenses for each month
+    // Sum expenses for each month (only for current year)
     bills.forEach(bill => {
       if (bill.date) {
         try {
-          // Extract month from date string (assuming format YYYY-MM-DD)
           const date = new Date(bill.date);
-          if (!isNaN(date.getTime())) { // Check if date is valid
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const monthName = monthNames[date.getMonth()];
-            
-            // Convert amount string to number and add to the monthly total
-            let amount = bill.amount;
-            if (typeof amount === 'string') {
-              // Remove currency prefix and any non-numeric characters except decimal point
-              amount = parseFloat(amount.replace(/[^0-9.]/g, ''));
-            }
-            
-            if (!isNaN(amount)) {
-              monthlyTotals[monthName] += amount;
+          if (!isNaN(date.getTime())) {
+            // Only process if it's from the current year
+            if (date.getFullYear() === currentYear) {
+              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              const monthName = monthNames[date.getMonth()];
+              
+              // Convert amount string to number and add to the monthly total
+              let amount = bill.amount;
+              if (typeof amount === 'string') {
+                // Remove currency prefix and any non-numeric characters except decimal point
+                amount = parseFloat(amount.replace(/[^0-9.]/g, ''));
+              }
+              
+              if (!isNaN(amount)) {
+                monthlyTotals[monthName] += amount;
+              }
             }
           }
         } catch (error) {
@@ -750,7 +754,7 @@ function Finance() {
 
       {/* Chart Section */}
       <div className="chart-container" ref={chartRef}>
-        <h3>Monthly Expenses Chart</h3>
+        <h3>Monthly Expenses Chart ({new Date().getFullYear()})</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart
             data={chartData}
@@ -810,7 +814,7 @@ function Finance() {
                 )}
               </div>
               <div className="form-group">
-                <label>Date (only past or today's date allowed)</label>
+                <label>Date (only past  dates are allowed)</label>
                 <input 
                   type="date" 
                   name="date" 
@@ -907,3 +911,4 @@ function Finance() {
 }
 
 export default Finance;
+
