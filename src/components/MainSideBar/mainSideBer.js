@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   HomeIcon, 
@@ -11,12 +11,31 @@ import {
   MenuIcon,
   XIcon 
 } from '@heroicons/react/outline';
+import { AuthContext } from "../context/AuthContext";
+import { signOut } from "firebase/auth";
+import { auth } from "../../firebase";
 
 function MainSideBar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { dispatch } = useContext(AuthContext);
   const [isHovered, setIsHovered] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      // Sign out from Firebase
+      await signOut(auth);
+      
+      // Dispatch LOGOUT action to clear state
+      dispatch({ type: "LOGOUT" });
+      
+      // Navigate to login page
+      navigate("/login");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
 
   const menuItems = [
     { name: 'Home', path: '/testHome', icon: HomeIcon },
@@ -25,7 +44,7 @@ function MainSideBar() {
     { name: 'Finance', path: '/finance', icon: CashIcon },
     { name: 'Utility', path: '/utility', icon: LightBulbIcon },
     { name: 'AI Assistant', path: '/aiAssistant', icon: ChatIcon },
-    { name: 'Logout', path: '/logout', icon: LogoutIcon },
+    { name: 'Logout', path: '/logout', icon: LogoutIcon, onClick: handleLogout },
   ];
 
   return (
@@ -62,7 +81,7 @@ function MainSideBar() {
                   ${isActive ? 'bg-blue-600' : 'hover:bg-gray-700'}
                   ${isHovered === index ? 'transform translate-x-2' : ''}
                 `}
-                onClick={() => navigate(item.path)}
+                onClick={item.onClick ? item.onClick : () => navigate(item.path)}
                 onMouseEnter={() => setIsHovered(index)}
                 onMouseLeave={() => setIsHovered(null)}
               >
