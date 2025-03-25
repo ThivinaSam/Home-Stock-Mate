@@ -44,7 +44,6 @@ function MainSideBar() {
     { name: 'Finance', path: '/finance', icon: CashIcon },
     { name: 'Utility', path: '/utility', icon: LightBulbIcon },
     { name: 'AI Assistant', path: '/aiAssistant', icon: ChatIcon },
-    { name: 'Logout', path: '/logout', icon: LogoutIcon, onClick: handleLogout },
   ];
 
   return (
@@ -90,6 +89,23 @@ function MainSideBar() {
               </div>
             );
           })}
+        </div>
+        
+        {/* Logout Button (above footer) */}
+        <div className="absolute bottom-16 w-full px-2">
+          <div
+            className={`
+              flex items-center p-3 my-2 rounded-lg cursor-pointer transition-all duration-200
+              hover:bg-gray-700
+              ${isHovered === 'logout' ? 'transform translate-x-2' : ''}
+            `}
+            onClick={handleLogout}
+            onMouseEnter={() => setIsHovered('logout')}
+            onMouseLeave={() => setIsHovered(null)}
+          >
+            <LogoutIcon className="h-6 w-6 mr-3" />
+            <span className="font-medium">Logout</span>
+          </div>
         </div>
         
         {/* Footer */}
