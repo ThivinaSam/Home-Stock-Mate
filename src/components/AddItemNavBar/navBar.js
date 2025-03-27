@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Menu, Button, Container, Image } from "semantic-ui-react";
 import { useNavigate, Link } from "react-router-dom";
-import AddItemModal from "../AddItemsMgt/AddEditItemModal"; // Make sure this path is correct
-// import logo from "../../assets/logo.png"; // Ensure the logo path is correct
+import AddItemModal from "../AddItemsMgt/AddEditItemModal";
+import logo from "./HSMlogo.png"; // Import from the local folder
 
 const NavBar = ({ refreshItems }) => {
   const [open, setOpen] = useState(false);
@@ -24,7 +24,7 @@ const NavBar = ({ refreshItems }) => {
         <Container>
           <Menu.Item name="home">
             <Link to="/">
-              <Image size="tiny" alt="logo" />
+              <Image src={logo} size="tiny" alt="Home Stock Mate logo" />
             </Link>
           </Menu.Item>
           <Menu.Item>
