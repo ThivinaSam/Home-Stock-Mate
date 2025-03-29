@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Modal, Loader } from "semantic-ui-react";
+import { Button, Modal, Loader, Progress } from "semantic-ui-react"; // Import the Progress component
 import { storage, db } from "../../firebase";
 import { uploadBytesResumable, ref, getDownloadURL } from "firebase/storage";
 import {
@@ -24,8 +24,8 @@ const initialState = {
 const getCurrentDate = () => {
   const today = new Date();
   const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -33,7 +33,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
   const [data, setData] = useState(initialState);
   const { item, description, price, quantity, date, image } = data;
   const [file, setFile] = useState(null);
-  const [progress, setProgress] = useState(null);
+  const [progress, setProgress] = useState(null); // Track upload progress
   const [errors, setErrors] = useState({});
   const [isSubmit, setIsSubmit] = useState(false);
 
@@ -70,10 +70,10 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
         (snapshot) => {
           const progress =
             (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgress(progress);
+          setProgress(progress); // Update progress state
           switch (snapshot.state) {
             case "paused":
-              console.log("Upload is paused");  
+              console.log("Upload is paused");
               break;
             case "running":
               console.log("Upload is running");
@@ -88,6 +88,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
         () => {
           getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
             setData((prev) => ({ ...prev, image: downloadURL }));
+            setProgress(null); // Reset progress after upload is complete
           });
         }
       );
@@ -97,14 +98,14 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // For price field, only allow numbers, decimal point, and prevent multiple decimal points
-    if (name === 'price') {
+    if (name === "price") {
       // Validate that input only contains numbers and at most one decimal point
       const regex = /^(\d+\.?\d*|\.\d+)$/;
-      
+
       // Empty value is allowed (for clearing the field)
-      if (value === '' || regex.test(value)) {
+      if (value === "" || regex.test(value)) {
         setData({ ...data, [name]: value });
       }
       // Don't update state if input doesn't match the pattern
@@ -133,7 +134,8 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
     if (!date) {
       errors.date = "Date is required";
     }
-    if (!image && !itemId) { // Only require image for new items
+    if (!image && !itemId) {
+      // Only require image for new items
       errors.image = "Image is required";
     }
     return errors;
@@ -144,7 +146,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
     let errors = validate();
     if (Object.keys(errors).length) return setErrors(errors);
     setIsSubmit(true);
-    
+
     try {
       if (!itemId) {
         // Add new item
@@ -159,11 +161,10 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
           timestamp: serverTimestamp(),
         });
       }
-      
+
       // Close modal and refresh items list
       setOpen(false);
       if (refreshItems) refreshItems();
-      
     } catch (error) {
       console.log(error);
     } finally {
@@ -172,12 +173,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={() => setOpen(false)}
-      size="small"
-      closeIcon
-    >
+    <Modal open={open} onClose={() => setOpen(false)} size="small" closeIcon>
       <Modal.Header>{itemId ? "Update Item" : "Add New Item"}</Modal.Header>
       <Modal.Content scrolling>
         {isSubmit ? (
@@ -203,9 +199,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
               />
               {errors.item && (
-                <span className="text-red-500 text-sm mt-1">
-                  {errors.item}
-                </span>
+                <span className="text-red-500 text-sm mt-1">{errors.item}</span>
               )}
             </div>
 
@@ -221,9 +215,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
                 placeholder="Enter description"
                 rows="4"
                 className={`mt-2 p-2 border ${
-                  errors.description
-                    ? "border-red-500"
-                    : "border-gray-300"
+                  errors.description ? "border-red-500" : "border-gray-300"
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
               />
               {errors.description && (
@@ -295,9 +287,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
               />
               {errors.date && (
-                <span className="text-red-500 text-sm mt-1">
-                  {errors.date}
-                </span>
+                <span className="text-red-500 text-sm mt-1">{errors.date}</span>
               )}
             </div>
 
@@ -320,6 +310,17 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
                 </span>
               )}
             </div>
+
+            {/* Progress Bar */}
+            {progress !== null && (
+              <div className="mt-4">
+                <Progress
+                  percent={Math.round(progress)} // Show progress percentage
+                  indicating
+                  progress
+                />
+              </div>
+            )}
           </form>
         )}
       </Modal.Content>
@@ -330,7 +331,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
         <Button
           color="green"
           onClick={handleSubmit}
-          disabled={progress !== null && progress < 100}
+          disabled={progress !== null && progress < 100} // Disable button during upload
         >
           {itemId ? "Update" : "Add"}
         </Button>
