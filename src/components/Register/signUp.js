@@ -11,14 +11,56 @@ function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [nameError, setNameError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
   const { dispatch } = useContext(AuthContext);
+  
+  // Name validation function for form submission check
+  const validateName = (value) => {
+    if (!value.trim()) {
+      setNameError("Name is required");
+      return false;
+    } else {
+      setNameError("");
+      return true;
+    }
+  };
+  
+  // Handle name change with error message for invalid characters
+  const handleNameChange = (e) => {
+    // Get the current input value
+    const inputValue = e.target.value;
+    
+    // Filter out anything that's not a letter or space
+    const lettersOnly = inputValue.replace(/[^A-Za-z\s]/g, '');
+    
+    // Check if any characters were filtered out
+    const hasInvalidChars = inputValue !== lettersOnly;
+    
+    // Update state with filtered value
+    setDisplayName(lettersOnly);
+    
+    // Show appropriate error message
+    if (!lettersOnly.trim()) {
+      setNameError("Name is required");
+    } else if (hasInvalidChars) {
+      setNameError("Only letters and spaces are allowed");
+    } else {
+      setNameError("");
+    }
+  };
 
   const handleSignUp = (e) => {
     e.preventDefault();
+    
+    // Validate name before proceeding
+    if (!validateName(displayName)) {
+      return; // Stop form submission if name is invalid
+    }
+    
     setLoading(true);
     setError(false);
 
@@ -64,11 +106,14 @@ function SignUp() {
               type="text"
               placeholder="Full Name"
               value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onChange={handleNameChange}
+              className={`w-full p-3 pl-10 border ${nameError ? "border-red-500" : "border-gray-300"} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
               required
             />
           </div>
+          {nameError && (
+            <p className="text-red-500 text-xs mt-1 -mb-4">{nameError}</p>
+          )}
           
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-500">
