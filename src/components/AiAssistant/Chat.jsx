@@ -49,7 +49,7 @@ function Chat({file}) {
     };
 
     return (
-        <section className="flex flex-col h-[500px] w-full max-w-3xl mx-auto bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+        <section className="flex flex-col h-[740px] w-full max-w-3xl mx-auto bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
             <div className="py-3 px-4 bg-blue-600 text-white">
                 <h2 className="text-xl font-semibold">Chat with your document</h2>
             </div>
@@ -96,6 +96,7 @@ function Chat({file}) {
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
                         type="text"
+                        autoFocus
                         placeholder="Ask any question about the uploaded document..."
                         className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         disabled={isLoading}
