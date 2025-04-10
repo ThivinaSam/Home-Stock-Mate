@@ -16,6 +16,7 @@ import GetEditItems from './components/GetItemsMgt/getEditItems';
 import GetItemsHome from './components/GetItemsMgt/getItemsHome';
 import UpdateGetItem from './components/GetItemsMgt/updateGetItem';
 import SignUp from './components/Register/signUp';
+import ChatHome from './components/AiAssistant/ChatHome';
 
 function App() {
   const {currentUser} = useContext(AuthContext)
@@ -47,6 +48,7 @@ function App() {
             <Route path="/updateGetItem/:id" element={<RequireAuth><UpdateGetItem /></RequireAuth>} />
             <Route path="/" element={<Login />} />
             <Route path="/register" element={<SignUp />} />
+            <Route path="/chat" element={<RequireAuth><ChatHome/></RequireAuth>} />
 
           </Routes>
       

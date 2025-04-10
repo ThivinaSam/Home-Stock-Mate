@@ -43,7 +43,7 @@ function MainSideBar() {
     { name: 'Get Item', path: '/getItems', icon: ShoppingCartIcon },
     { name: 'Finance', path: '/finance', icon: CashIcon },
     { name: 'Utility', path: '/utility', icon: LightBulbIcon },
-    { name: 'AI Assistant', path: '/aiAssistant', icon: ChatIcon },
+    { name: 'AI Assistant', path: '/chat', icon: ChatIcon },
   ];
 
   return (
