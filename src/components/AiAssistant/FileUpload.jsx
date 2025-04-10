@@ -68,7 +68,7 @@ function FileUpload({ setFile }) {
 
   return (
     <section className="flex flex-col items-center justify-center w-full max-w-3xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md border border-gray-200">
-      <h2 className="text-2xl font-semibold text-gray-800 mb-6">Upload a Document</h2>
+      <h2 className="text-2xl font-semibold text-gray-800 mb-6">Upload an Image</h2>
       
       <div 
         className={`w-full p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
@@ -121,7 +121,7 @@ function FileUpload({ setFile }) {
               Drag & drop your file here or click to browse
             </p>
             <p className="text-gray-500 text-sm text-center">
-              Supports PDF, JPG, JPEG, PNG (max 10MB)
+              Supports JPG, JPEG, PNG (max 10MB)
             </p>
           </>
         )}
@@ -136,8 +136,8 @@ function FileUpload({ setFile }) {
       />
       
       {!selectedFile && (
-        <p className="mt-6 text-gray-600 text-center">
-          Upload a document to start analyzing with AI
+        <p className="mt-6 text-gray-600 text-center font-medium">
+          Upload a image to start analyzing with AI
         </p>
       )}
     </section>

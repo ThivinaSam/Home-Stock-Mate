@@ -66,7 +66,7 @@ function Summary({file}) {
         
         {/* Summary Content */}
         <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-center mb-4">
             <h2 className="text-xl font-semibold text-gray-800">Document Summary</h2>
             {status === 'error' && (
               <button 
@@ -86,7 +86,7 @@ function Summary({file}) {
               </div>
             ) : status === 'success' ? (
               <div className="w-full">
-                <p className="text-gray-700 leading-relaxed">{summary}</p>
+                <p className="text-gray-700 leading-relaxed font-">{summary}</p>
               </div>
             ) : status === 'error' ? (
               <div className="text-center text-red-600 p-4 bg-red-50 rounded-lg flex flex-col items-center">
