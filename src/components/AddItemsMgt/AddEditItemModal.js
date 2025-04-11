@@ -36,6 +36,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
   const [progress, setProgress] = useState(null); // Track upload progress
   const [errors, setErrors] = useState({});
   const [isSubmit, setIsSubmit] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null); // New state for image preview
 
   useEffect(() => {
     if (open) {
@@ -45,6 +46,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
         setFile(null);
         setProgress(null);
         setErrors({});
+        setImagePreview(null); // Reset image preview
       } else {
         getSingleItem();
       }
@@ -56,6 +58,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
     const snapshot = await getDoc(docRef);
     if (snapshot.exists()) {
       setData({ ...snapshot.data() });
+      setImagePreview(snapshot.data().image); // Set preview to existing image URL
     }
   };
 
@@ -112,6 +115,18 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
     } else {
       // For other fields, update normally
       setData({ ...data, [name]: value });
+    }
+  };
+
+  // Modified file onChange handler
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      
+      // Create a preview URL for the selected file
+      const previewUrl = URL.createObjectURL(selectedFile);
+      setImagePreview(previewUrl);
     }
   };
 
@@ -291,7 +306,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
               )}
             </div>
 
-            {/* Image Field */}
+            {/* Image Field with Preview */}
             <div className="flex flex-col">
               <label className="text-lg font-semibold text-gray-700">
                 Choose an image
@@ -299,15 +314,30 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
               <input
                 type="file"
                 name="image"
-                onChange={(e) => setFile(e.target.files[0])}
+                onChange={handleFileChange} // Use the new handler
                 className={`mt-2 p-2 border ${
                   errors.image ? "border-red-500" : "border-gray-300"
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                accept="image/*" // Only accept image files
               />
               {errors.image && (
                 <span className="text-red-500 text-sm mt-1">
                   {errors.image}
                 </span>
+              )}
+              
+              {/* Image Preview */}
+              {imagePreview && (
+                <div className="mt-3">
+                  <p className="text-sm text-gray-600 mb-2">Image Preview:</p>
+                  <div className="w-48 h-48 border border-gray-300 rounded-lg overflow-hidden">
+                    <img 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
               )}
             </div>
 
