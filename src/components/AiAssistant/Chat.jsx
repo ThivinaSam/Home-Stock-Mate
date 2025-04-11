@@ -173,7 +173,7 @@ function Chat({file}) {
                     </div>
                 ) : (
                     <div className="h-full flex items-center justify-center text-gray-500">
-                        <p>Ask a question about your document to get started</p>
+                        <p>Ask a question about your image to get started</p>
                     </div>
                 )}
             </div>
