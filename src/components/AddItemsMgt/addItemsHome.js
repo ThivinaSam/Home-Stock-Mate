@@ -625,9 +625,11 @@ const AddItemsHome = () => {
               <div className="flex justify-end m-6">
                 <Button
                   primary
+                  size="large"
                   onClick={generatePDFWithStyledTable}
                   disabled={filteredItems.length === 0 || pdfLoading}
                   loading={pdfLoading}
+                  className="px-6 py-3"
                 >
                   <Icon name="file pdf outline" />
                   Download PDF
