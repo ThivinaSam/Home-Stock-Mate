@@ -342,10 +342,10 @@ const AddItemsHome = () => {
             </div>
           ) : (
             <div className="overflow-x-auto rounded-lg shadow-lg border border-gray-200">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200 border-collapse">
                 {/* Table Header - Enhanced styling */}
                 <thead className="bg-[#3498db] text-white">
-                  <tr>
+                  <tr className="divide-x divide-blue-400">
                     <th className="px-6 py-4 text-center text-sm font-medium uppercase tracking-wider w-20">
                       <div className="flex flex-col items-center">
                         <svg
@@ -523,7 +523,7 @@ const AddItemsHome = () => {
                         key={item.id}
                         className={`${
                           index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                        } hover:bg-blue-50 transition-colors duration-150 ease-in-out`}
+                        } hover:bg-blue-50 transition-colors duration-150 ease-in-out divide-x divide-gray-200`}
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex justify-center">
@@ -621,6 +621,9 @@ const AddItemsHome = () => {
                 </tbody>
               </table>
 
+              {/* Divider line above PDF button */}
+              <div className="border-t border-gray-200 mx-0 my-0"></div>
+
               {/* Download PDF Button */}
               <div className="flex justify-end m-6">
                 <Button
@@ -629,7 +632,7 @@ const AddItemsHome = () => {
                   onClick={generatePDFWithStyledTable}
                   disabled={filteredItems.length === 0 || pdfLoading}
                   loading={pdfLoading}
-                  className="px-6 py-3"
+                  style={{ padding: '12px 24px' }}
                 >
                   <Icon name="file pdf outline" />
                   Download PDF
