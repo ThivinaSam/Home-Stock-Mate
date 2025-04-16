@@ -20,6 +20,7 @@ import {
   FaCalendarAlt,
   FaChartLine,
   FaSearch,
+  FaRobot,
 } from "react-icons/fa";
 
 // Summary card component
@@ -342,7 +343,7 @@ function Home() {
         {/* Summary Cards Section */}
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Inventory Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             {/* Inventory Summary */}
             <SummaryCard
               title="Inventory"
@@ -382,6 +383,35 @@ function Home() {
               color="bg-purple-500"
               onClick={() => navigate("/utility")}
             />
+
+            {/* AI Assistant Card */}
+            <div 
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-md p-5 text-white cursor-pointer hover:shadow-lg transition-all duration-200"
+              onClick={() => navigate("/chat")}
+            >
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-xl font-semibold">AI Assistant</h3>
+                <div className="p-2 rounded-full bg-white bg-opacity-20">
+                  <FaRobot className="h-6 w-6 text-white" />
+                </div>
+              </div>
+              <p className="mb-4 text-white text-opacity-90">
+                Need help managing your inventory? Just upload your image...
+              </p>
+              <div className="bg-white bg-opacity-10 rounded-lg p-3 mb-4">
+                <p className="text-sm font-medium">
+                  "When is this item expires?"
+                </p>
+              </div>
+              <div className="bg-white bg-opacity-10 rounded-lg p-3">
+                <p className="text-sm font-medium">
+                  "What is this image contains?"
+                </p>
+              </div>
+              <button className="mt-4 w-full py-2 bg-white text-indigo-600 rounded-md font-medium hover:bg-opacity-90 transition-colors">
+                Ask Assistant Now
+              </button>
+            </div>
           </div>
         </section>
 
