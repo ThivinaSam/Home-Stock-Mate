@@ -771,7 +771,7 @@ function UtilityMgt() {
           <div className="utility-col">Due Date</div>
           <div className="utility-col">Countdown</div>
           <div className="utility-col">Amount</div>
-          <div className="utility-col">Bill Photo</div>
+          <div className="utility-col">bill img</div>
           <div className="utility-col">Status</div>
           <div className="utility-col">Actions</div>
         </div>
