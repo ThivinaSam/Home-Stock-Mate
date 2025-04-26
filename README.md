@@ -107,7 +107,7 @@ For detailed instructions, refer to the [Firebase Hosting documentation](https:/
 
 ## 📸 Screenshots
 
-*(Add screenshots of your application here)*
+
 
 ---
 
