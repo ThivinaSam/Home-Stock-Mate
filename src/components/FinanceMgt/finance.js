@@ -41,7 +41,7 @@ function Finance() {
   const chartRef = useRef(null);
   
   // Bill types for dropdown
-  const billTypes = ['Grocery','Food', 'Fuel', 'Utility', 'Clothing','Other'];
+  const billTypes = ['Grocery','Food', 'Fuel', 'Utility', 'Clothing', 'Medicine','Other'];
 
   useEffect(() => {
     const fetchBills = async () => {
