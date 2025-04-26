@@ -324,7 +324,14 @@ function UtilityMgt() {
       }
 
       // Prepare utility data
-   
+      const utilityData = {
+        name: newUtility.name,
+        dueDate: newUtility.dueDate,
+        dueTime: newUtility.dueTime,
+        amount: newUtility.amount,
+        photoUrl: imageUrl,
+        timestamp: serverTimestamp()
+      };
 
       if (editingUtility) {
         // Update existing utility
