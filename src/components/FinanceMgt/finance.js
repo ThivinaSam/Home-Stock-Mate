@@ -668,7 +668,7 @@ function Finance() {
   return (
     <div className="finance-container">
       <MainSideBar />
-      <h2>Finance Management</h2>
+      <h2>Finance </h2>
       
       {/* Success Message */}
       {showSuccessMessage && (
@@ -708,7 +708,7 @@ function Finance() {
           });
           setShowPopup(true);
         }}>
-          Add Bill
+          Add 
         </button>
       </div>
 
