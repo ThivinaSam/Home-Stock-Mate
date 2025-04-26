@@ -106,7 +106,7 @@ h2:after {
 
 .add-button {
   background-color: var(--primary-color);
-  color: rgb(153, 51, 51);
+  color: white;
   border: none;
   padding: 12px 20px;
   border-radius: var(--border-radius);
@@ -217,7 +217,7 @@ h2:after {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  color: rgb(255, 22, 22);
+  color: white;
   display: flex;
   justify-content: center;
   align-items: center;
