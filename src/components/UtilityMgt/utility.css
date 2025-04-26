@@ -106,7 +106,7 @@ h2:after {
 
 .add-button {
   background-color: var(--primary-color);
-  color: white;
+  color: rgb(153, 30, 30);
   border: none;
   padding: 12px 20px;
   border-radius: var(--border-radius);
