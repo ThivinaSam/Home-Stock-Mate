@@ -112,7 +112,15 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
         setData({ ...data, [name]: value });
       }
       // Don't update state if input doesn't match the pattern
-    } else {
+    } 
+    // For quantity field, ensure it's not negative
+    else if (name === "quantity") {
+      // Allow empty string for clearing or non-negative numbers
+      if (value === "" || parseInt(value) > 0) {
+        setData({ ...data, [name]: value });
+      }
+    }
+    else {
       // For other fields, update normally
       setData({ ...data, [name]: value });
     }
@@ -145,6 +153,8 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
     }
     if (!quantity) {
       errors.quantity = "Quantity is required";
+    } else if (parseInt(quantity) < 0) {
+      errors.quantity = "Quantity cannot be negative";
     }
     if (!date) {
       errors.date = "Date is required";
@@ -274,6 +284,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
                 value={quantity}
                 onChange={handleChange}
                 placeholder="Enter quantity"
+                min="0"
                 className={`mt-2 p-2 border ${
                   errors.quantity ? "border-red-500" : "border-gray-300"
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
