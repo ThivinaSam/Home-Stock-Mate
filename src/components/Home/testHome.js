@@ -229,22 +229,78 @@ function Home() {
     <div className="min-h-screen bg-gray-50">
       <MainSideBar />
       <div className="lg:ml-64 p-6">
-        {/* Header section with enhanced styling */}
-        <header className="mb-10 bg-white p-6 rounded-lg shadow-sm border-l-4 border-blue-500">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center">
-            <span className="bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
-              Dashboard
-            </span>
-            <div className="ml-2 w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-          </h1>
-          <p className="text-gray-600 text-lg ml-1 leading-relaxed">
-            Welcome to{" "}
-            <span className="font-medium text-blue-600">Home Stock Mate</span>,
-            <span className="italic">
-              {" "}
-              your household inventory management system
-            </span>
-          </p>
+        {/* Header section with enhanced styling - moderate size */}
+        <header className="mb-10 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl shadow-md overflow-hidden">
+          {/* Content wrapper */}
+          <div className="relative px-6 py-8">
+            {/* Background pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="white" strokeWidth="0.5"/>
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#smallGrid)" />
+              </svg>
+            </div>
+            
+            {/* Content container */}
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between">
+              {/* Left side with title and welcome message */}
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-2 flex items-center">
+                  Dashboard
+                  <div className="ml-2 w-2 h-2 rounded-full bg-yellow-300 animate-pulse"></div>
+                </h1>
+                
+                <div className="mb-4">
+                  <p className="text-blue-100 text-lg">
+                    Welcome to <span className="font-bold text-white">Home Stock Mate</span>
+                  </p>
+                  <p className="text-blue-200">
+                    Your household inventory management system
+                  </p>
+                </div>
+                
+                {/* Quick stats */}
+                <div className="flex flex-wrap gap-3 mt-3">
+                  <div className="px-3 py-1 bg-white bg-opacity-20 backdrop-filter backdrop-blur-sm rounded-full text-xs font-medium text-white border border-white border-opacity-20">
+                    <span className="inline-block w-1.5 h-1.5 bg-green-400 rounded-full mr-1.5 align-middle"></span>
+                    System Active
+                  </div>
+                  <div className="px-3 py-1 bg-white bg-opacity-20 backdrop-filter backdrop-blur-sm rounded-full text-xs font-medium text-white border border-white border-opacity-20">
+                    Last updated: Today
+                  </div>
+                </div>
+              </div>
+              
+              {/* Right side with action buttons */}
+              <div className="mt-6 md:mt-0 flex space-x-3">
+                <button 
+                  onClick={() => navigate("/addItemHome")}
+                  className="px-4 py-2 bg-white text-blue-700 rounded-lg font-medium hover:bg-blue-50 transition-colors shadow-sm flex items-center text-sm"
+                >
+                  <FaBoxOpen className="mr-2" /> Add Item
+                </button>
+                <button 
+                  onClick={() => navigate("/getItems")}
+                  className="px-4 py-2 bg-blue-800 text-white rounded-lg font-medium hover:bg-blue-900 transition-colors border border-blue-500 flex items-center text-sm"
+                >
+                  <FaSearch className="mr-2" /> View Items
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Wave shape at bottom */}
+          <div>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none" className="h-6 w-full fill-white">
+              <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" opacity=".25"></path>
+              <path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" opacity=".5"></path>
+              <path d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z"></path>
+            </svg>
+          </div>
         </header>
 
         {/* Search section */}
