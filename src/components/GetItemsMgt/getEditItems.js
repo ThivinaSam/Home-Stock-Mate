@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Button, Form, Grid, Loader } from "semantic-ui-react";
+import {
+  Button,
+  Form,
+  Grid,
+  Loader,
+  Segment,
+  Header,
+  Icon,
+} from "semantic-ui-react";
 import {
   collection,
   query,
@@ -9,10 +17,15 @@ import {
   doc,
   setDoc,
 } from "firebase/firestore";
-import { useParams, useNavigate } from "react-router-dom";
-import { ref, getDownloadURL, uploadBytesResumable } from "firebase/storage";
+import {
+  ref,
+  getDownloadURL,
+  uploadBytesResumable,
+} from "firebase/storage";
 import { db, storage } from "../../firebase";
+import { useNavigate } from "react-router-dom";
 import MainSideBar from "../MainSideBar/mainSideBer";
+import Swal from "sweetalert2";
 
 const initialState = {
   item: "",
@@ -59,7 +72,9 @@ const GetEditItems = () => {
   }, [file]);
 
   const handleChange = (e) => {
-    setData({ ...data, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "qty" && value < 0) return;
+    setData({ ...data, [name]: value });
   };
 
   const validate = () => {
@@ -67,16 +82,16 @@ const GetEditItems = () => {
     if (!item) errors.item = "Item is required";
     if (!exDate) errors.exDate = "Expire Date is required";
     if (!statuss) errors.statuss = "Status is required";
-    if (!qty) errors.qty = "Quantity is required";
+    if (!qty || qty <= 0) errors.qty = "Quantity must be positive";
     return errors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    let errors = validate();
-    if (Object.keys(errors).length > 0) {
-      setErrors(errors);
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       return;
     }
 
@@ -87,7 +102,7 @@ const GetEditItems = () => {
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        console.log("❌ Item does not exist in addItems collection.");
+        Swal.fire("Not Found", "Item not found in addItems collection", "error");
         setIsSubmit(false);
         return;
       }
@@ -96,34 +111,34 @@ const GetEditItems = () => {
         const docData = document.data();
         const docId = document.id;
 
-        // Create a new object with original item name but updated form data
         const updatedData = {
-          item: docData.item, // Keep the original item name
-          // Use form values for other fields
-          exDate: exDate,
-          statuss: statuss,
-          qty: qty,
-          // Timestamp for when the item was gotten
+          item: docData.item,
+          exDate,
+          statuss,
+          qty,
           getDate: new Date().toISOString(),
         };
 
-        // Only add the img field if it exists in the original document
         if (docData.img) {
           updatedData.img = docData.img;
         }
 
-        // Save to getItems collection
         await setDoc(doc(db, "getItems", docId), updatedData);
-
-        // Delete from addItems collection
         await deleteDoc(doc(db, "addItems", docId));
 
-        console.log("✅ Item moved successfully with updated data.");
+        Swal.fire({
+          icon: "success",
+          title: "Item Retrieved",
+          text: "Item moved and updated successfully!",
+          confirmButtonColor: "#3085d6",
+        });
+
         setIsSubmit(false);
         navigate("/getItemHome");
       });
     } catch (error) {
-      console.error("🔥 Error moving item:", error);
+      console.error("🔥 Error:", error);
+      Swal.fire("Error", "Failed to process item", "error");
       setIsSubmit(false);
     }
   };
@@ -134,63 +149,71 @@ const GetEditItems = () => {
       <Grid
         centered
         verticalAlign="middle"
-        columns="3"
-        style={{ height: "80vh" }}
+        style={{ height: "100vh", backgroundColor: "#f4f7f9" }}
       >
-        <Grid.Row>
-          <Grid.Column textAlign="center">
-            <div>
-              {isSubmit ? (
-                <Loader active inline="centered" size="huge" />
-              ) : (
-                <>
-                  <h2>Get Item</h2>
-                  <Form onSubmit={handleSubmit}>
-                    <Form.Input
-                      label="Item"
-                      error={errors.item ? { content: errors.item } : null}
-                      placeholder="Enter Item"
-                      name="item"
-                      onChange={handleChange}
-                      value={item}
-                      autoFocus
-                    />
-                    <Form.Input
-                      label="Expire Date"
-                      error={errors.exDate ? { content: errors.exDate } : null}
-                      placeholder="Enter Expire Date"
-                      name="exDate"
-                      onChange={handleChange}
-                      value={exDate}
-                      type="Date"
-                    />
-                    <Form.Input
-                      label="Status"
-                      error={
-                        errors.statuss ? { content: errors.statuss } : null
-                      }
-                      placeholder="Enter Status"
-                      name="statuss"
-                      onChange={handleChange}
-                      value={statuss}
-                    />
-                    <Form.Input
-                      label="Quantity"
-                      error={errors.qty ? { content: errors.qty } : null}
-                      placeholder="Enter Quantity"
-                      name="qty"
-                      onChange={handleChange}
-                      value={qty}
-                    />
-                    <Button primary type="submit">
-                      Submit
-                    </Button>
-                  </Form>
-                </>
-              )}
-            </div>
-          </Grid.Column>
-        </Grid.Row>
+        <Grid.Column style={{ maxWidth: 600 }}>
+          <Segment padded="very" raised>
+            {isSubmit ? (
+              <Loader active inline="centered" size="large" />
+            ) : (
+              <>
+                <Header as="h2" icon textAlign="center">
+                  <Icon name="arrow circle down" />
+                  Retrieve Item
+                  <Header.Subheader>
+                    Fill out the details to retrieve and save the item
+                  </Header.Subheader>
+                </Header>
+
+                <Form onSubmit={handleSubmit}>
+                  <Form.Input
+                    fluid
+                    label="Item"
+                    name="item"
+                    placeholder="Enter item name"
+                    value={item}
+                    onChange={handleChange}
+                    error={errors.item ? { content: errors.item, pointing: "below" } : null}
+                  />
+                  <Form.Input
+                    fluid
+                    label="Expiry Date"
+                    type="date"
+                    name="exDate"
+                    value={exDate}
+                    onChange={handleChange}
+                    error={errors.exDate ? { content: errors.exDate, pointing: "below" } : null}
+                  />
+                  <Form.Input
+                    fluid
+                    label="Status"
+                    name="statuss"
+                    placeholder="Enter status"
+                    value={statuss}
+                    onChange={handleChange}
+                    error={errors.statuss ? { content: errors.statuss, pointing: "below" } : null}
+                  />
+                  <Form.Input
+                    fluid
+                    label="Quantity"
+                    type="number"
+                    min="1"
+                    name="qty"
+                    placeholder="Enter quantity"
+                    value={qty}
+                    onChange={handleChange}
+                    error={errors.qty ? { content: errors.qty, pointing: "below" } : null}
+                  />
+
+                  <Button type="submit" color="blue" fluid size="large" icon labelPosition="left">
+                    <Icon name="save" />
+                    Save Item
+                  </Button>
+                </Form>
+              </>
+            )}
+          </Segment>
+        </Grid.Column>
       </Grid>
     </div>
   );
