@@ -102,20 +102,22 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // For price field, only allow numbers, decimal point, and prevent multiple decimal points
+    // For price field, only allow positive numbers and decimal point
     if (name === "price") {
       // Validate that input only contains numbers and at most one decimal point
       const regex = /^(\d+\.?\d*|\.\d+)$/;
 
       // Empty value is allowed (for clearing the field)
       if (value === "" || regex.test(value)) {
-        setData({ ...data, [name]: value });
+        // Make sure the value is > 0 if converting to a number
+        if (value === "" || parseFloat(value) > 0) {
+          setData({ ...data, [name]: value });
+        }
       }
-      // Don't update state if input doesn't match the pattern
     } 
     // For quantity field, ensure it's not negative
     else if (name === "quantity") {
-      // Allow empty string for clearing or non-negative numbers
+      // Allow empty string for clearing or non-negative numbers (including 0)
       if (value === "" || parseInt(value) > 0) {
         setData({ ...data, [name]: value });
       }
@@ -150,6 +152,8 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
       errors.price = "Price is required";
     } else if (isNaN(parseFloat(price))) {
       errors.price = "Price must be a valid number";
+    } else if (parseFloat(price) <= 0) {
+      errors.price = "Price must be greater than 0";
     }
     if (!quantity) {
       errors.quantity = "Quantity is required";
@@ -260,8 +264,9 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
                 name="price"
                 value={price}
                 onChange={handleChange}
-                placeholder="Enter price (numbers only)"
+                placeholder="Enter price (greater than 0)"
                 inputMode="decimal" // Shows number keyboard on mobile
+                min="0.01" // Visual cue that value should be positive
                 className={`mt-2 p-2 border ${
                   errors.price ? "border-red-500" : "border-gray-300"
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
