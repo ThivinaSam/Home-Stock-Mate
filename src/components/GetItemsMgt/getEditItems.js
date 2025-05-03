@@ -17,11 +17,7 @@ import {
   doc,
   setDoc,
 } from "firebase/firestore";
-import {
-  ref,
-  getDownloadURL,
-  uploadBytesResumable,
-} from "firebase/storage";
+import { ref, getDownloadURL, uploadBytesResumable } from "firebase/storage";
 import { db, storage } from "../../firebase";
 import { useNavigate } from "react-router-dom";
 import MainSideBar from "../MainSideBar/mainSideBer";
@@ -102,7 +98,11 @@ const GetEditItems = () => {
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        Swal.fire("Not Found", "Item not found in addItems collection", "error");
+        Swal.fire(
+          "Not Found",
+          "Item not found in addItems collection",
+          "error"
+        );
         setIsSubmit(false);
         return;
       }
@@ -173,7 +173,11 @@ const GetEditItems = () => {
                     placeholder="Enter item name"
                     value={item}
                     onChange={handleChange}
-                    error={errors.item ? { content: errors.item, pointing: "below" } : null}
+                    error={
+                      errors.item
+                        ? { content: errors.item, pointing: "below" }
+                        : null
+                    }
                   />
                   <Form.Input
                     fluid
@@ -182,7 +186,11 @@ const GetEditItems = () => {
                     name="exDate"
                     value={exDate}
                     onChange={handleChange}
-                    error={errors.exDate ? { content: errors.exDate, pointing: "below" } : null}
+                    error={
+                      errors.exDate
+                        ? { content: errors.exDate, pointing: "below" }
+                        : null
+                    }
                   />
                   <Form.Input
                     fluid
@@ -191,7 +199,11 @@ const GetEditItems = () => {
                     placeholder="Enter status"
                     value={statuss}
                     onChange={handleChange}
-                    error={errors.statuss ? { content: errors.statuss, pointing: "below" } : null}
+                    error={
+                      errors.statuss
+                        ? { content: errors.statuss, pointing: "below" }
+                        : null
+                    }
                   />
                   <Form.Input
                     fluid
@@ -202,13 +214,37 @@ const GetEditItems = () => {
                     placeholder="Enter quantity"
                     value={qty}
                     onChange={handleChange}
-                    error={errors.qty ? { content: errors.qty, pointing: "below" } : null}
+                    error={
+                      errors.qty
+                        ? { content: errors.qty, pointing: "below" }
+                        : null
+                    }
                   />
 
-                  <Button type="submit" color="blue" fluid size="large" icon labelPosition="left">
+                  <Button
+                    type="submit"
+                    color="blue"
+                    fluid
+                    size="large"
+                    icon
+                    labelPosition="left"
+                  >
                     <Icon name="save" />
                     Save Item
                   </Button>
+                  <div>
+                    <p style={{ textAlign: "center", marginTop: "10px" }}>or</p>
+                  </div>
+                  <div className="flex justify-center m-3">
+                    <Button
+                      secondary
+                      onClick={() => navigate("/getitemhome")}
+                      size="large"
+                      style={{ padding: "12px 50px" }}
+                    >
+                      View all get items
+                    </Button>
+                  </div>
                 </Form>
               </>
             )}

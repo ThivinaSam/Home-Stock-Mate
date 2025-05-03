@@ -304,7 +304,7 @@ function AddItemModal({ open, setOpen, itemId = null, refreshItems }) {
             {/* Date Field - updated with max attribute */}
             <div className="flex flex-col">
               <label className="text-lg font-semibold text-gray-700">
-                Date
+                Date of purchase
               </label>
               <input
                 type="date"
