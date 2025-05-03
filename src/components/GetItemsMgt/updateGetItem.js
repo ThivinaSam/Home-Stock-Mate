@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Button, Form, Grid, Loader } from "semantic-ui-react";
+import {
+  Button,
+  Form,
+  Grid,
+  Loader,
+  Segment,
+  Header,
+  Icon,
+} from "semantic-ui-react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
 import MainSideBar from "../MainSideBar/mainSideBer";
+import Swal from "sweetalert2";
 
 const initialState = {
   item: "",
@@ -13,14 +22,13 @@ const initialState = {
 };
 
 const UpdateGetItem = () => {
-  const { id } = useParams(); // Assuming the item ID is passed in the URL
-  const navigate = useNavigate(); // For redirecting after form submission
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState(initialState);
   const { item, exDate, statuss, qty } = data;
   const [errors, setErrors] = useState({});
   const [isSubmit, setIsSubmit] = useState(false);
 
-  // Fetch item details when the component is mounted
   useEffect(() => {
     const fetchItemDetails = async () => {
       const docRef = doc(db, "getItems", id);
@@ -28,7 +36,7 @@ const UpdateGetItem = () => {
       if (docSnap.exists()) {
         setData(docSnap.data());
       } else {
-        console.log("No such document!");
+        Swal.fire("Not Found", "Item does not exist.", "error");
       }
     };
 
@@ -36,15 +44,20 @@ const UpdateGetItem = () => {
   }, [id]);
 
   const handleChange = (e) => {
-    setData({ ...data, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // Prevent negative quantity
+    if (name === "qty" && value < 0) return;
+
+    setData({ ...data, [name]: value });
   };
 
   const validate = () => {
     let errors = {};
     if (!item) errors.item = "Item is required";
-    if (!exDate) errors.exDate = "Expire Date is required";
+    if (!exDate) errors.exDate = "Expiry Date is required";
     if (!statuss) errors.statuss = "Status is required";
-    if (!qty) errors.qty = "Quantity is required";
+    if (!qty || qty <= 0) errors.qty = "Quantity must be a positive number";
     return errors;
   };
 
@@ -68,12 +81,16 @@ const UpdateGetItem = () => {
         qty,
       });
 
-      console.log("✅ Item updated successfully.");
+      Swal.fire({
+        icon: "success",
+        title: "Item Updated",
+        text: "The item was successfully updated!",
+        confirmButtonColor: "#3085d6",
+      });
 
-      // Redirect to /getItemHome after successful update
       navigate("/getItemHome");
     } catch (error) {
-      console.error("🔥 Error updating item:", error);
+      Swal.fire("Error", "Failed to update item", "error");
     } finally {
       setIsSubmit(false);
     }
@@ -82,58 +99,84 @@ const UpdateGetItem = () => {
   return (
     <div>
       <MainSideBar />
-      <Grid centered verticalAlign="middle" columns="3" style={{ height: "80vh" }}>
-        <Grid.Row>
-          <Grid.Column textAlign="center">
-            <div>
-              {isSubmit ? (
-                <Loader active inline="centered" size="huge" />
-              ) : (
-                <>
-                  <h2>Update Get Item</h2>
-                  <Form onSubmit={handleSubmit}>
-                    <Form.Input
-                      label="Item"
-                      error={errors.item ? { content: errors.item } : null}
-                      placeholder="Enter Item"
-                      name="item"
-                      onChange={handleChange}
-                      value={item}
-                      autoFocus
-                    />
-                    <Form.Input
-                      label="Expire Date"
-                      error={errors.exDate ? { content: errors.exDate } : null}
-                      placeholder="Enter Expire Date"
-                      name="exDate"
-                      onChange={handleChange}
-                      value={exDate}
-                    />
-                    <Form.Input
-                      label="Status"
-                      error={errors.statuss ? { content: errors.statuss } : null}
-                      placeholder="Enter Status"
-                      name="statuss"
-                      onChange={handleChange}
-                      value={statuss}
-                    />
-                    <Form.Input
-                      label="Quantity"
-                      error={errors.qty ? { content: errors.qty } : null}
-                      placeholder="Enter Quantity"
-                      name="qty"
-                      onChange={handleChange}
-                      value={qty}
-                    />
-                    <Button primary type="submit">
-                      Update
-                    </Button>
-                  </Form>
-                </>
-              )}
-            </div>
-          </Grid.Column>
-        </Grid.Row>
+      <Grid
+        centered
+        verticalAlign="middle"
+        style={{ height: "100vh", backgroundColor: "#f4f7f9" }}
+      >
+        <Grid.Column style={{ maxWidth: 550 }}>
+          <Segment raised padded="very">
+            {isSubmit ? (
+              <Loader active inline="centered" size="large" />
+            ) : (
+              <>
+                <Header as="h2" icon textAlign="center">
+                  <Icon name="edit" />
+                  Update Retrieved Item
+                  <Header.Subheader>
+                    Make changes to the selected item
+                  </Header.Subheader>
+                </Header>
+
+                <Form onSubmit={handleSubmit}>
+                  <Form.Input
+                    fluid
+                    label="Item"
+                    placeholder="Enter item name"
+                    name="item"
+                    value={item}
+                    onChange={handleChange}
+                    error={
+                      errors.item ? { content: errors.item, pointing: "below" } : null
+                    }
+                  />
+
+                  <Form.Input
+                    fluid
+                    label="Expiry Date"
+                    type="date"
+                    name="exDate"
+                    value={exDate}
+                    onChange={handleChange}
+                    error={
+                      errors.exDate ? { content: errors.exDate, pointing: "below" } : null
+                    }
+                  />
+
+                  <Form.Input
+                    fluid
+                    label="Status"
+                    placeholder="Enter status"
+                    name="statuss"
+                    value={statuss}
+                    onChange={handleChange}
+                    error={
+                      errors.statuss ? { content: errors.statuss, pointing: "below" } : null
+                    }
+                  />
+
+                  <Form.Input
+                    fluid
+                    label="Quantity"
+                    type="number"
+                    min="1"
+                    placeholder="Enter quantity"
+                    name="qty"
+                    value={qty}
+                    onChange={handleChange}
+                    error={
+                      errors.qty ? { content: errors.qty, pointing: "below" } : null
+                    }
+                  />
+
+                  <Button type="submit" color="blue" fluid>
+                    <Icon name="save" /> Update Item
+                  </Button>
+                </Form>
+              </>
+            )}
+          </Segment>
+        </Grid.Column>
       </Grid>
     </div>
   );
